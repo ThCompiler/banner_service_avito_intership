@@ -1,0 +1,11 @@
+port: 8080
+postgres:
+  url: "host=banner-bd port=5432 user=intern password=fyr8as4da6 dbname=banner_db sslmode=disable"
+redis:
+  url: "redis://chaches/0"
+logger:
+  app_name: "banner"
+  level: 'debug'
+  directory: './app-log/'
+  use_std_and_file: true
+  allow_show_low_level: true

@@ -1,0 +1,83 @@
+name: Base CI
+
+env:
+  GO_VERSION: 1.22
+  BIN_NAME: quests
+
+on:
+  push:
+    branches:
+      - main
+      - dev/*/main
+  pull_request:
+    branches:
+      - main
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - name: Verify dependencies
+        run: go mod verify
+      - name: Install staticcheck
+        run: go install honnef.co/go/tools/cmd/staticcheck@latest
+      - name: Run staticcheck
+        run: staticcheck ./...
+  vet:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - name: Verify dependencies
+        run: go mod verify
+      - name: Run go vet
+        run: go vet ./...
+  test:
+    needs: [vet, lint]
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - name: Verify dependencies
+        run: go mod verify
+      - name: Run tests
+        run: go test -race -coverpkg=./... -vet=off -covermode=atomic -coverprofile=coverage.out ./...
+#      - name: Upload coverage to Codecov
+#        uses: codecov/codecov-action@v4
+#        env:
+#          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+  build:
+    runs-on: ubuntu-latest
+    needs: [test]
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - name: Verify dependencies
+        run: go mod verify
+      - name: Run build
+        run: make build
