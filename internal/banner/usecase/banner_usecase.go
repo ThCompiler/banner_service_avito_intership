@@ -10,8 +10,8 @@ import (
 )
 
 const (
-	defaultOffset = 100
-	defaultLimit  = 0
+	defaultOffset = 0
+	defaultLimit  = 100
 )
 
 type BannerUsecase struct {
@@ -49,17 +49,17 @@ func (bu *BannerUsecase) GetAdminBanners(featureId *types.Id, tagId *types.Id,
 	var entityOffset uint64 = defaultOffset
 	var entityLimit uint64 = defaultLimit
 
-	if offset == nil {
+	if offset != nil {
 		entityOffset = *offset
 	}
 
-	if limit == nil {
-		entityLimit = *offset
+	if limit != nil {
+		entityLimit = *limit
 	}
 
 	banners, err := bu.rep.GetBanners(&entity.BannerInfo{
 		FeatureId: types.ObjectFromPointer(featureId),
-		TagIds:    types.ObjectFromPointer(tagId),
+		TagId:     types.ObjectFromPointer(tagId),
 	}, entityOffset, entityLimit)
 	if err != nil {
 		return nil, err

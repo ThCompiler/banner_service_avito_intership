@@ -1,8 +1,10 @@
 package types
 
-import "database/sql"
+import (
+	"database/sql"
+)
 
-type Id uint64
+type Id uint32
 
 type ContextField string
 
@@ -34,8 +36,13 @@ func ObjectFromPointer[T any](object *T) *NullableObject[T] {
 }
 
 func (object *NullableObject[T]) ToNullableSQL() *sql.Null[T] {
+	if object == nil {
+		return &sql.Null[T]{
+			Valid: false,
+		}
+	}
 	return &sql.Null[T]{
-		Valid: object.IsNull,
+		Valid: !object.IsNull,
 		V:     object.Value,
 	}
 }

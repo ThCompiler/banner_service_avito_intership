@@ -20,6 +20,11 @@ const docTemplate = `{
     "paths": {
         "/banner": {
             "get": {
+                "security": [
+                    {
+                        "AdminToken": []
+                    }
+                ],
                 "description": "Возвращает список баннеров на основе фильтра по фиче и/или тегу.",
                 "produces": [
                     "application/json"
@@ -85,6 +90,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "AdminToken": []
+                    }
+                ],
                 "description": "Добавляет баннер включая его содержания, id фичи, список id тэгов и состояние.",
                 "consumes": [
                     "application/json"
@@ -140,6 +150,11 @@ const docTemplate = `{
         },
         "/banner/{id}": {
             "delete": {
+                "security": [
+                    {
+                        "AdminToken": []
+                    }
+                ],
                 "description": "Удаляет информацию о банере по его id.",
                 "produces": [
                     "application/json"
@@ -185,6 +200,11 @@ const docTemplate = `{
                 }
             },
             "patch": {
+                "security": [
+                    {
+                        "AdminToken": []
+                    }
+                ],
                 "description": "Обновляет информацию о баннере по его id.",
                 "consumes": [
                     "application/json"
@@ -287,6 +307,11 @@ const docTemplate = `{
         },
         "/user_banner": {
             "get": {
+                "security": [
+                    {
+                        "UserToken": []
+                    }
+                ],
                 "description": "Возвращает баннер на основании тэга группы пользователей и фичи.",
                 "produces": [
                     "application/json"
@@ -457,6 +482,20 @@ const docTemplate = `{
                     "type": "string"
                 }
             }
+        }
+    },
+    "securityDefinitions": {
+        "AdminToken": {
+            "description": "Токен доступа админа",
+            "type": "apiKey",
+            "name": "token",
+            "in": "header"
+        },
+        "UserToken": {
+            "description": "Токен доступа пользователя",
+            "type": "apiKey",
+            "name": "token",
+            "in": "header"
         }
     }
 }`

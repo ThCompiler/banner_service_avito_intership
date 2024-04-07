@@ -50,6 +50,8 @@ func NewBannerHandlers(usecase banner.Usecase, cache caches.Manager) *BannerHand
 //	@Failure		409	"Баннер с указанной парой id фичи и ia тэга уже существует"
 //	@Failure		500	{object}	tools.Error	"Внутренняя ошибка сервера"
 //	@Router			/banner [post]
+//
+//	@Security		AdminToken
 func (bh *BannerHandlers) CreateBanner(c *gin.Context) {
 	l := middleware.GetLogger(c)
 
@@ -90,6 +92,8 @@ func (bh *BannerHandlers) CreateBanner(c *gin.Context) {
 //	@Failure		404	"Баннер с данным id не найден"
 //	@Failure		500	{object}	tools.Error	"Внутренняя ошибка сервера"
 //	@Router			/banner/{id} [delete]
+//
+//	@Security		AdminToken
 func (bh *BannerHandlers) DeleteBanner(c *gin.Context) {
 	l := middleware.GetLogger(c)
 
@@ -130,6 +134,8 @@ func (bh *BannerHandlers) DeleteBanner(c *gin.Context) {
 //	@Failure		409	"Баннер с указанной парой id фичи и ia тэга уже существует"
 //	@Failure		500	{object}	tools.Error	"Внутренняя ошибка сервера"
 //	@Router			/banner/{id} [patch]
+//
+//	@Security		AdminToken
 func (bh *BannerHandlers) UpdateBanner(c *gin.Context) {
 	l := middleware.GetLogger(c)
 
@@ -181,6 +187,8 @@ func (bh *BannerHandlers) UpdateBanner(c *gin.Context) {
 //	@Failure		404	"Баннер с указанными тэгом и фичёй не найден"
 //	@Failure		500	{object}	tools.Error	"Внутренняя ошибка сервера"
 //	@Router			/user_banner [get]
+//
+//	@Security		UserToken
 func (bh *BannerHandlers) GetUserBanner(c *gin.Context) {
 	l := middleware.GetLogger(c)
 
@@ -218,7 +226,9 @@ func (bh *BannerHandlers) GetUserBanner(c *gin.Context) {
 
 	if err := bh.cache.SetCache(featureId, tagId, types.Content(content)); err != nil {
 		l.Error(errors.Wrapf(err, "can't cache banner with feature id %d and tag id %d", featureId, tagId))
+		return
 	}
+	l.Info("banner with feature id %d and tag id %d was cached", featureId, tagId)
 }
 
 // GetAdminBanner
@@ -237,6 +247,8 @@ func (bh *BannerHandlers) GetUserBanner(c *gin.Context) {
 //	@Failure		403	"Пользователь не имеет доступа"
 //	@Failure		500	{object}	tools.Error	"Внутренняя ошибка сервера"
 //	@Router			/banner [get]
+//
+//	@Security		AdminToken
 func (bh *BannerHandlers) GetAdminBanner(c *gin.Context) {
 	l := middleware.GetLogger(c)
 
@@ -244,7 +256,7 @@ func (bh *BannerHandlers) GetAdminBanner(c *gin.Context) {
 	var offset, limit = new(uint64), new(uint64)
 
 	if rawTagId, err := tools.ParseQueryParamToUint64(c, TagIdParam,
-		ErrorFeatureIdNotPresented, ErrorTagIdIncorrectType, l); err == nil {
+		ErrorTagIdNotPresented, ErrorTagIdIncorrectType, l); err == nil {
 		*tagId = (types.Id)(rawTagId)
 	} else {
 		if !errors.Is(err, ErrorTagIdNotPresented) {

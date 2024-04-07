@@ -128,6 +128,8 @@ paths:
           description: Внутренняя ошибка сервера
           schema:
             $ref: '#/definitions/tools.Error'
+      security:
+      - AdminToken: []
       summary: Получение всех баннеров c фильтрацией по фиче и/или тегу
       tags:
       - banner
@@ -164,6 +166,8 @@ paths:
           description: Внутренняя ошибка сервера
           schema:
             $ref: '#/definitions/tools.Error'
+      security:
+      - AdminToken: []
       summary: Создание нового баннера.
       tags:
       - banner
@@ -195,6 +199,8 @@ paths:
           description: Внутренняя ошибка сервера
           schema:
             $ref: '#/definitions/tools.Error'
+      security:
+      - AdminToken: []
       summary: Удаление банера.
       tags:
       - banner
@@ -235,6 +241,8 @@ paths:
           description: Внутренняя ошибка сервера
           schema:
             $ref: '#/definitions/tools.Error'
+      security:
+      - AdminToken: []
       summary: Обновление баннера.
       tags:
       - banner
@@ -303,9 +311,22 @@ paths:
           description: Внутренняя ошибка сервера
           schema:
             $ref: '#/definitions/tools.Error'
+      security:
+      - UserToken: []
       summary: Получение баннера для пользователя.
       tags:
       - banner
 schemes:
 - http
+securityDefinitions:
+  AdminToken:
+    description: Токен доступа админа
+    in: header
+    name: token
+    type: apiKey
+  UserToken:
+    description: Токен доступа пользователя
+    in: header
+    name: token
+    type: apiKey
 swagger: "2.0"

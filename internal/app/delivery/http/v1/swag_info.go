@@ -10,3 +10,13 @@ package v1
 
 //	@host		localhost:8080
 //	@BasePath	/api/v1
+
+//	@securityDefinitions.apikey	AdminToken
+//	@name						token
+//	@in							header
+//	@description				Токен доступа админа
+
+//	@securityDefinitions.apikey	UserToken
+//	@name						token
+//	@in							header
+//	@description				Токен доступа пользователя

@@ -2,6 +2,7 @@ package app
 
 import (
 	ah "bannersrv/external/auth/delivery/http/v1/handlers"
+	"bannersrv/internal/app/delivery/http/middleware"
 	v1 "bannersrv/internal/app/delivery/http/v1"
 	bh "bannersrv/internal/banner/delivery/http/v1/handlers"
 	"bannersrv/internal/caches"
@@ -69,7 +70,7 @@ func prepareRoutes(bannerHandlers *bh.BannerHandlers, cache caches.Manager,
 			Method:      http.MethodPost,
 			Pattern:     "/banner",
 			HandlerFunc: bannerHandlers.CreateBanner,
-			Middlewares: []gin.HandlerFunc{tm.WithAdminToken(tokenService)},
+			Middlewares: []gin.HandlerFunc{middleware.RequestToken, tm.WithAdminToken(tokenService)},
 		},
 
 		// "GetAdminBanner"
@@ -77,7 +78,7 @@ func prepareRoutes(bannerHandlers *bh.BannerHandlers, cache caches.Manager,
 			Method:      http.MethodGet,
 			Pattern:     "/banner",
 			HandlerFunc: bannerHandlers.GetAdminBanner,
-			Middlewares: []gin.HandlerFunc{tm.WithAdminToken(tokenService)},
+			Middlewares: []gin.HandlerFunc{middleware.RequestToken, tm.WithAdminToken(tokenService)},
 		},
 
 		// "DeleteBanner"
@@ -85,7 +86,7 @@ func prepareRoutes(bannerHandlers *bh.BannerHandlers, cache caches.Manager,
 			Method:      http.MethodDelete,
 			Pattern:     "/banner/:" + bh.BannerIdField,
 			HandlerFunc: bannerHandlers.DeleteBanner,
-			Middlewares: []gin.HandlerFunc{tm.WithAdminToken(tokenService)},
+			Middlewares: []gin.HandlerFunc{middleware.RequestToken, tm.WithAdminToken(tokenService)},
 		},
 
 		// "UpdateBanner"
@@ -93,7 +94,7 @@ func prepareRoutes(bannerHandlers *bh.BannerHandlers, cache caches.Manager,
 			Method:      http.MethodPatch,
 			Pattern:     "/banner/:" + bh.BannerIdField,
 			HandlerFunc: bannerHandlers.UpdateBanner,
-			Middlewares: []gin.HandlerFunc{tm.WithAdminToken(tokenService)},
+			Middlewares: []gin.HandlerFunc{middleware.RequestToken, tm.WithAdminToken(tokenService)},
 		},
 
 		// "GetUserBanner"
@@ -101,7 +102,8 @@ func prepareRoutes(bannerHandlers *bh.BannerHandlers, cache caches.Manager,
 			Method:      http.MethodGet,
 			Pattern:     "/user_banner",
 			HandlerFunc: bannerHandlers.GetUserBanner,
-			Middlewares: []gin.HandlerFunc{tm.WithUserToken(tokenService), cm.CacheBanner(cache)},
+			Middlewares: []gin.HandlerFunc{middleware.RequestToken,
+				tm.WithUserToken(tokenService), cm.CacheBanner(cache)},
 		},
 
 		// Для эмуляции сервиса выдачи токенов

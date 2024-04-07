@@ -4,6 +4,7 @@ import (
 	"bannersrv/internal/banner/entity"
 	"bannersrv/internal/banner/repository"
 	"bannersrv/internal/pkg/types"
+	"bannersrv/pkg/slices"
 	"database/sql"
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
@@ -58,11 +59,14 @@ const (
 	`
 
 	filterQuery = `
-		WITH selected_banner AS (
-			SELECT banner_id, feature_id, array_agg(tag_id) as tag_ids FROM features_tags_banner 
-			WHERE (CASE WHEN $1 IS NOT NULL THEN feature_id = $1 ELSE true END)
-      			and (CASE WHEN $2 IS NOT NULL THEN tag_id = $2 ELSE true END) 
-			GROUP BY banner_id, feature_id
+		WITH filter_banner AS (
+			SELECT DISTINCT banner_id FROM features_tags_banner 
+			WHERE (CASE WHEN $1::bigint IS NOT NULL THEN feature_id = $1 ELSE true END)
+      			and (CASE WHEN $2::bigint IS NOT NULL THEN tag_id = $2 ELSE true END) 
+		), selected_banner AS (
+			SELECT ftb.banner_id, ftb.feature_id, array_agg(ftb.tag_id)::bigint[] as tag_ids FROM features_tags_banner as ftb
+			INNER JOIN filter_banner ON (filter_banner.banner_id = ftb.banner_id)
+			GROUP BY ftb.banner_id, ftb.feature_id
 		) 
 		SELECT id, tag_ids, feature_id, content, is_active, created_at, updated_at FROM banner 
 		    INNER JOIN selected_banner ON (selected_banner.banner_id = banner.id)
@@ -95,7 +99,7 @@ func (br *BannerRepository) CreateBanner(banner *entity.Banner) (types.Id, error
 		return 0, errors.Wrap(err, "can't create banner")
 	}
 
-	if _, err := tx.Exec(addFeaturesAndTagsQuery, createdId, banner.FeatureId, banner.TagIds); err != nil {
+	if _, err := tx.Exec(addFeaturesAndTagsQuery, createdId, banner.FeatureId, pq.Array(banner.TagIds)); err != nil {
 		_ = tx.Rollback()
 		return 0, errors.Wrapf(checkPgConflictError(err),
 			"can't add feature id %d and tag ids %v to banner", banner.FeatureId, banner.TagIds)
@@ -130,7 +134,11 @@ func (br *BannerRepository) UpdateBanner(banner *entity.BannerUpdate) (types.Id,
 	}
 
 	var updatedId types.Id
-	if err := tx.QueryRowx(updateQuery, banner.Id, banner.Content.ToNullableSQL(), banner.IsActive.ToNullableSQL()).
+	if err := tx.QueryRowx(updateQuery, banner.Id,
+		&sql.NullString{
+			Valid:  !banner.Content.IsNull,
+			String: string(banner.Content.Value),
+		}, banner.IsActive.ToNullableSQL()).
 		Scan(
 			&updatedId,
 		); err != nil {
@@ -159,7 +167,7 @@ func (br *BannerRepository) UpdateBanner(banner *entity.BannerUpdate) (types.Id,
 			featureId = banner.FeatureId.Value
 		}
 
-		if _, err := tx.Exec(addFeaturesAndTagsQuery, banner.Id, featureId, banner.TagIds.Value); err != nil {
+		if _, err := tx.Exec(addFeaturesAndTagsQuery, banner.Id, featureId, pq.Array(banner.TagIds.Value)); err != nil {
 			_ = tx.Rollback()
 			return 0, errors.Wrapf(checkPgConflictError(err),
 				"can't add feature id %d and tag ids %v to banner with id %d",
@@ -176,7 +184,15 @@ func (br *BannerRepository) UpdateBanner(banner *entity.BannerUpdate) (types.Id,
 
 func (br *BannerRepository) GetBanners(banner *entity.BannerInfo,
 	offset uint64, limit uint64) ([]entity.Banner, error) {
-	rows, err := br.db.Queryx(filterQuery, banner.FeatureId.ToNullableSQL(), banner.TagIds.ToNullableSQL(),
+
+	rows, err := br.db.Queryx(filterQuery,
+		&sql.NullInt64{
+			Valid: !banner.FeatureId.IsNull,
+			Int64: int64(banner.FeatureId.Value),
+		}, &sql.NullInt64{
+			Valid: !banner.TagId.IsNull,
+			Int64: int64(banner.TagId.Value),
+		},
 		limit, offset)
 	if err != nil {
 		return nil, errors.Wrap(err, "can't execute filter banner query")
@@ -187,9 +203,11 @@ func (br *BannerRepository) GetBanners(banner *entity.BannerInfo,
 	for rows.Next() {
 		var banner entity.Banner
 
+		tagIds := make([]int64, 0)
+
 		err := rows.Scan(
 			&banner.Id,
-			&banner.TagIds,
+			pq.Array(&tagIds),
 			&banner.FeatureId,
 			&banner.Content,
 			&banner.IsActive,
@@ -199,6 +217,8 @@ func (br *BannerRepository) GetBanners(banner *entity.BannerInfo,
 		if err != nil {
 			return nil, errors.Wrap(err, "can't scan filter banner query result")
 		}
+
+		banner.TagIds = slices.Map(tagIds, func(id int64) types.Id { return types.Id(id) })
 
 		banners = append(banners, banner)
 	}

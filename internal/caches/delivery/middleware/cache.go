@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	useLastRevisionParam = "use_last_revision"
+	UseLastRevisionParam = "use_last_revision"
 )
 
 func CacheBanner(cacheManager caches.Manager) gin.HandlerFunc {
@@ -24,11 +24,11 @@ func CacheBanner(cacheManager caches.Manager) gin.HandlerFunc {
 		l := middleware.GetLogger(c)
 
 		var useLastRevision = false
-		if rawUseLastRevision, ok := c.GetQuery(useLastRevisionParam); ok {
+		if rawUseLastRevision, ok := c.GetQuery(UseLastRevisionParam); ok {
 			tmp, err := strconv.ParseBool(rawUseLastRevision)
 			if err != nil {
 				l.Warn(errors.Wrapf(err, "can't parse query field %s with value %s",
-					useLastRevisionParam, rawUseLastRevision))
+					UseLastRevisionParam, rawUseLastRevision))
 				tools.SendError(c, ErrorUseLastRevisionIncorrectType, http.StatusBadRequest, l)
 				return
 			}

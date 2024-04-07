@@ -25,5 +25,5 @@ type BannerUpdate struct {
 
 type BannerInfo struct {
 	FeatureId *types.NullableObject[types.Id]
-	TagIds    *types.NullableObject[types.Id]
+	TagId     *types.NullableObject[types.Id]
 }

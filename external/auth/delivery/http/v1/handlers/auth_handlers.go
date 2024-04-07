@@ -27,7 +27,7 @@ func NewAuthHandlers(usecase auth.Usecase) *AuthHandlers {
 func (ah *AuthHandlers) GetAdminToken(c *gin.Context) {
 	l := middleware.GetLogger(c)
 
-	tools.SendStatus(c, http.StatusNoContent, ah.usecase.GetAdminToken(), l)
+	tools.SendStatus(c, http.StatusOK, ah.usecase.GetAdminToken(), l)
 }
 
 // GetUserToken
@@ -41,5 +41,5 @@ func (ah *AuthHandlers) GetAdminToken(c *gin.Context) {
 func (ah *AuthHandlers) GetUserToken(c *gin.Context) {
 	l := middleware.GetLogger(c)
 
-	tools.SendStatus(c, http.StatusNoContent, ah.usecase.GetUserToken(), l)
+	tools.SendStatus(c, http.StatusOK, ah.usecase.GetUserToken(), l)
 }

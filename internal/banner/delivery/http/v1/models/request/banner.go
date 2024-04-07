@@ -16,7 +16,7 @@ type CreateBanner struct {
 	// Идентификатор фичи
 	FeatureId types.Id `json:"feature_id" swaggertype:"integer" format:"uint64"`
 	// Идентификаторы тегов
-	TagsIds []types.Id `json:"tags_ids"`
+	TagsIds []types.Id `json:"tag_ids"`
 }
 
 func ValidateCreateBanner(data []byte) error {
@@ -24,7 +24,7 @@ func ValidateCreateBanner(data []byte) error {
 		vjson.Object("content", vjson.NewSchema()).Required(),
 		vjson.Boolean("is_active").Required(),
 		vjson.Integer("feature_id").Positive().Required(),
-		vjson.Array("tags_ids", vjson.Integer("id").Positive()).Required(),
+		vjson.Array("tag_ids", vjson.Integer("id").Positive()).Required(),
 	)
 	return schema.ValidateBytes(data)
 }
@@ -37,7 +37,7 @@ type UpdateBanner struct {
 	// Идентификатор фичи
 	FeatureId *types.Id `json:"feature_id,omitempty" swaggertype:"integer" format:"uint64"`
 	// Идентификаторы тегов
-	TagsIds []types.Id `json:"tags_ids,omitempty"`
+	TagsIds []types.Id `json:"tag_ids,omitempty"`
 }
 
 func ValidateUpdateBanner(data []byte) error {
@@ -45,7 +45,7 @@ func ValidateUpdateBanner(data []byte) error {
 		vjson.Object("content", vjson.NewSchema()),
 		vjson.Boolean("is_active"),
 		vjson.Integer("feature_id").Positive(),
-		vjson.Array("tags_ids", vjson.Integer("id").Positive()),
+		vjson.Array("tag_ids", vjson.Integer("id").Positive()),
 	)
 	return schema.ValidateBytes(data)
 }

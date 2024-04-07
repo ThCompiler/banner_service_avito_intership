@@ -1,5 +1,6 @@
 LOG_DIR=./logs
 SWAG_DIRS=./internal/app/delivery/http/v1/,./internal/banner/delivery/http/v1/handlers,./internal/banner/delivery/http/v1/models/request,./internal/banner/delivery/http/v1/models/response,./external/auth/delivery/http/v1/handlers,./internal/app/delivery/http/tools
+include ./env/api_test.env
 
 .PHONY: build
 build:
@@ -7,15 +8,29 @@ build:
 
 .PHONY: build-docker
 build-docker:
-	docker build --no-cache --network host -f ./Dockerfile . --tag main
+	sudo docker build --no-cache --network host -f ./Dockerfile . --tag main
+
+.PHONY: run-environment
+run-environment:
+	sudo docker compose -f ./docker-compose-api-test.yml up -d
+
+.PHONY: down-environment
+down-environment:
+	sudo docker compose -f ./docker-compose-api-test.yml down
+
+.PHONY: run-api-test
+run-api-test: run-environment
+	sleep 5 # чтобы postgres успел инициализироваться
+	go test -tags=integration ./...
+	make down-environment
 
 .PHONY: run
 run:
-	docker compose up -d
+	sudo docker compose up -d
 
 .PHONY: run-verbose
 run-verbose:
-	docker compose up
+	sudo docker compose up
 
 .PHONY: open-last-log
 open-last-log:

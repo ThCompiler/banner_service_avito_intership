@@ -1,8 +1,8 @@
 port: 8080
 postgres:
-  url: "host=banner-bd port=5432 user=intern password=fyr8as4da6 dbname=banner_db sslmode=disable"
+  url: "port=5432 user=intern password=fyr8as4da6 dbname=banner_db sslmode=disable" #host=banner-bd
 redis:
-  url: "redis://chaches/0"
+  url: "redis://localhost:6379/0"#"redis://chaches/0"
 logger:
   app_name: "banner"
   level: 'debug'
