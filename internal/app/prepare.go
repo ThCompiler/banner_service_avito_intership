@@ -2,6 +2,7 @@ package app
 
 import (
 	ah "bannersrv/external/auth/delivery/http/v1/handlers"
+	"bannersrv/internal/app/config"
 	"bannersrv/internal/app/delivery/http/middleware"
 	v1 "bannersrv/internal/app/delivery/http/v1"
 	bh "bannersrv/internal/banner/delivery/http/v1/handlers"
@@ -18,7 +19,6 @@ import (
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 
-	"bannersrv/config"
 	_ "bannersrv/docs"
 	"bannersrv/internal/pkg/prepare"
 	"bannersrv/pkg/logger"
@@ -104,6 +104,14 @@ func prepareRoutes(bannerHandlers *bh.BannerHandlers, cache caches.Manager,
 			HandlerFunc: bannerHandlers.GetUserBanner,
 			Middlewares: []gin.HandlerFunc{middleware.RequestToken,
 				tm.WithUserToken(tokenService), cm.CacheBanner(cache)},
+		},
+
+		// "DeleteFilterBanner"
+		v1.Route{
+			Method:      http.MethodDelete,
+			Pattern:     "/filter_banner",
+			HandlerFunc: bannerHandlers.DeleteFilterBanner,
+			Middlewares: []gin.HandlerFunc{middleware.RequestToken, tm.WithAdminToken(tokenService)},
 		},
 
 		// Для эмуляции сервиса выдачи токенов

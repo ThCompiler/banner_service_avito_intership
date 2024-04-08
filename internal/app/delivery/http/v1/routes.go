@@ -2,9 +2,9 @@ package v1
 
 import (
 	"bannersrv/internal/app/delivery/http/middleware"
-	"net/http"
-
+	"bannersrv/internal/pkg/metrics"
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"bannersrv/pkg/logger"
 )
@@ -20,31 +20,21 @@ type Route struct {
 
 type Routes []Route
 
-func NewRouter(root string, l logger.Interface, routes Routes) (*gin.Engine, error) {
-	router := gin.New()
+func NewRouter(root string, l logger.Interface, routes Routes, metricsManager metrics.Manager) (*gin.Engine, error) {
+	gin.SetMode(gin.ReleaseMode)
 
-	router.Use(middleware.RequestLogger(l), middleware.CheckPanic)
+	router := gin.New()
+	router.GET("/metrics", func(c *gin.Context) {
+		promhttp.Handler().ServeHTTP(c.Writer, c.Request)
+	})
+
+	router.Use(middleware.RequestLogger(l, metricsManager), middleware.CheckPanic)
 	rt := router.Group(root)
 	v1 := rt.Group(version)
 
 	for _, route := range routes {
 		route.Middlewares = append(route.Middlewares, route.HandlerFunc)
-		switch route.Method {
-		case http.MethodGet:
-			v1.GET(route.Pattern, route.Middlewares...)
-		case http.MethodPost:
-			v1.POST(route.Pattern, route.Middlewares...)
-		case http.MethodHead:
-			v1.HEAD(route.Pattern, route.Middlewares...)
-		case http.MethodPut:
-			v1.PUT(route.Pattern, route.Middlewares...)
-		case http.MethodPatch:
-			v1.PATCH(route.Pattern, route.Middlewares...)
-		case http.MethodDelete:
-			v1.DELETE(route.Pattern, route.Middlewares...)
-		case http.MethodOptions:
-			v1.OPTIONS(route.Pattern, route.Middlewares...)
-		}
+		v1.Handle(route.Method, route.Pattern, route.Middlewares...)
 	}
 
 	return router, nil

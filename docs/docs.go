@@ -265,6 +265,63 @@ const docTemplate = `{
                 }
             }
         },
+        "/filter_banner": {
+            "delete": {
+                "security": [
+                    {
+                        "AdminToken": []
+                    }
+                ],
+                "description": "Удаляет баннеры на основе фильтра по фиче или тегу. Обязателен один из query параметров.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "banner"
+                ],
+                "summary": "Удаление всех баннеров c фильтрацией по фиче или тегу",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Идентификатор тэга группы пользователей",
+                        "name": "tag_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Идентификатор фичи",
+                        "name": "feature_id",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Баннеры успешно удалены"
+                    },
+                    "400": {
+                        "description": "Некорректные данные",
+                        "schema": {
+                            "$ref": "#/definitions/tools.Error"
+                        }
+                    },
+                    "401": {
+                        "description": "Пользователь не авторизован"
+                    },
+                    "403": {
+                        "description": "Пользователь не имеет доступа"
+                    },
+                    "404": {
+                        "description": "Баннер с указанными тэгом и фичёй не найден"
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера",
+                        "schema": {
+                            "$ref": "#/definitions/tools.Error"
+                        }
+                    }
+                }
+            }
+        },
         "/token/admin": {
             "get": {
                 "description": "Возвращает токен с правами админа.",
@@ -312,7 +369,7 @@ const docTemplate = `{
                         "UserToken": []
                     }
                 ],
-                "description": "Возвращает баннер на основании тэга группы пользователей и фичи.",
+                "description": "Возвращает баннер на основании тэга группы пользователей, фичи и версии, если версия не указана, то вернётся последняя.",
                 "produces": [
                     "application/json"
                 ],
@@ -334,6 +391,12 @@ const docTemplate = `{
                         "name": "feature_id",
                         "in": "query",
                         "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Версия баннера",
+                        "name": "version",
+                        "in": "query"
                     },
                     {
                         "type": "boolean",
@@ -391,7 +454,7 @@ const docTemplate = `{
                     "description": "Флаг активности баннера",
                     "type": "boolean"
                 },
-                "tags_ids": {
+                "tag_ids": {
                     "description": "Идентификаторы тегов",
                     "type": "array",
                     "items": {
@@ -416,7 +479,7 @@ const docTemplate = `{
                     "description": "Флаг активности баннера",
                     "type": "boolean"
                 },
-                "tags_ids": {
+                "tag_ids": {
                     "description": "Идентификаторы тегов",
                     "type": "array",
                     "items": {
@@ -432,10 +495,6 @@ const docTemplate = `{
                     "description": "Идентификатор баннера",
                     "type": "integer",
                     "format": "uint64"
-                },
-                "content": {
-                    "description": "Содержимое баннера",
-                    "type": "object"
                 },
                 "created_at": {
                     "description": "Дата создания баннера",
@@ -462,6 +521,13 @@ const docTemplate = `{
                     "description": "Дата обновления баннера",
                     "type": "string",
                     "format": "date-time"
+                },
+                "versions": {
+                    "description": "Последние три версии баннера",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/response.Content"
+                    }
                 }
             }
         },
@@ -472,6 +538,25 @@ const docTemplate = `{
                     "description": "Идентификатор созданного баннера",
                     "type": "integer",
                     "format": "uint64"
+                }
+            }
+        },
+        "response.Content": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "description": "Содержимое баннера",
+                    "type": "object"
+                },
+                "created_at": {
+                    "description": "Дата создания версии",
+                    "type": "string",
+                    "format": "date-time"
+                },
+                "version": {
+                    "description": "Версия содержимого баннера",
+                    "type": "integer",
+                    "format": "uint32"
                 }
             }
         },

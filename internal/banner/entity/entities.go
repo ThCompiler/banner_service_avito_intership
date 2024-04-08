@@ -5,14 +5,20 @@ import (
 	"time"
 )
 
+type Content struct {
+	Version   uint32
+	Content   types.Content
+	CreatedAt time.Time
+}
+
 type Banner struct {
 	Id        types.Id
-	Content   types.Content
 	FeatureId types.Id
 	TagIds    []types.Id
 	IsActive  bool
 	CreatedAt time.Time
 	UpdatedAt time.Time
+	Versions  []Content
 }
 
 type BannerUpdate struct {

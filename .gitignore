@@ -24,3 +24,4 @@ go.work
 app-log
 logs
 allure-results/
+logs*

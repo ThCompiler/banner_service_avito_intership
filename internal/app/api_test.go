@@ -19,7 +19,9 @@ import (
 	"bannersrv/internal/pkg/types"
 	"bannersrv/pkg/logger"
 	"context"
+	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/go-co-op/gocron/v2"
 	"github.com/ilyakaznacheev/cleanenv"
 	"github.com/jmoiron/sqlx"
 	"github.com/ozontech/allure-go/pkg/framework/provider"
@@ -73,12 +75,21 @@ func (as *ApiSuite) BeforeEach(t provider.T) {
 	as.rdsClient = redis.NewClient(opt)
 
 	if err := as.rdsClient.Ping(context.Background()).Err(); err != nil {
-		l.Fatal("can't check connection to redis with error: %s", err)
+		t.Fatalf("can't check connection to redis with error: %s", err)
+	}
+
+	cronScheduler, err := gocron.NewScheduler()
+	if err != nil {
+		t.Fatal(fmt.Errorf("start cronScheduler error: %s", err))
 	}
 
 	t.NewStep("Инициализация репозиториев")
+
 	// Repository
-	as.bannerRepository = bp.NewBannerRepository(as.pgConnection)
+	as.bannerRepository, err = bp.NewBannerRepository(as.pgConnection, cronScheduler, l)
+	if err != nil {
+		t.Fatal(fmt.Errorf("initialize BannerRepository error: %s", err))
+	}
 	cacheRepository := cr.NewCashRedis(as.rdsClient)
 
 	t.NewStep("Инициализация юзкейсов")
@@ -95,7 +106,8 @@ func (as *ApiSuite) BeforeEach(t provider.T) {
 
 	t.NewStep("Инициализация роутера")
 	// routes
-	as.router, err = v1.NewRouter("/api", l, prepareRoutes(bannerHandlers, cacheManager, authService, authHandlers))
+	as.router, err = v1.NewRouter("/api", l,
+		prepareRoutes(bannerHandlers, cacheManager, authService, authHandlers), nil)
 	if err != nil {
 		t.Fatalf("init router error: %s", err)
 	}
@@ -123,35 +135,38 @@ func (as *ApiSuite) TestGetUserBanner(t provider.T) {
 	const path = "/api/v1/user_banner"
 	const updatedContent = `{"title": "updated_banner", "width": 30}`
 
+	bannerContentList := map[string]types.Content{
+		activeBanner:      `{"title": "banner", "width": 30}`,
+		cashedBanner:      `{"title": "cashed_banner", "width": 30}`,
+		otherCashedBanner: `{"title": "other_cashed_banner", "width": 30}`,
+		inactiveBanner:    `{"title": "disabled_banner", "width": 30}`,
+	}
+
 	bannerList := map[string]*entity.Banner{
 		activeBanner: {
-			Content:   `{"title": "banner", "width": 30}`,
 			FeatureId: 1,
 			TagIds:    []types.Id{2, 4, 3},
 			IsActive:  true,
 		},
 		cashedBanner: {
-			Content:   `{"title": "cashed_banner", "width": 30}`,
 			FeatureId: 3,
 			TagIds:    []types.Id{5, 1, 2},
 			IsActive:  true,
 		},
 		otherCashedBanner: {
-			Content:   `{"title": "other_cashed_banner", "width": 30}`,
 			FeatureId: 4,
 			TagIds:    []types.Id{5, 1, 2},
 			IsActive:  true,
 		},
 		inactiveBanner: {
-			Content:   `{"title": "disabled_banner", "width": 30}`,
 			FeatureId: 2,
 			TagIds:    []types.Id{1, 4, 5},
 			IsActive:  false,
 		},
 	}
 
-	for _, bn := range bannerList {
-		id, err := as.bannerRepository.CreateBanner(bn)
+	for key, bn := range bannerList {
+		id, err := as.bannerRepository.CreateBanner(bn.FeatureId, bn.TagIds, bannerContentList[key], bn.IsActive)
 		t.Require().NoError(err)
 		bn.Id = id
 	}
@@ -163,7 +178,7 @@ func (as *ApiSuite) TestGetUserBanner(t provider.T) {
 			Query(bh.FeatureIdParam, "1").Query(bh.TagIdParam, "2").
 			Header(middleware.TokenHeaderField, string(as.authService.GetUserToken())).
 			Expect(t).
-			Body(string(bannerList[activeBanner].Content)).
+			Body(string(bannerContentList[activeBanner])).
 			Status(http.StatusOK).
 			End()
 	})
@@ -175,7 +190,7 @@ func (as *ApiSuite) TestGetUserBanner(t provider.T) {
 			Query(bh.FeatureIdParam, "3").Query(bh.TagIdParam, "1").
 			Header(middleware.TokenHeaderField, string(as.authService.GetUserToken())).
 			Expect(t).
-			Body(string(bannerList[cashedBanner].Content)).
+			Body(string(bannerContentList[cashedBanner])).
 			Status(http.StatusOK).
 			End()
 
@@ -199,6 +214,28 @@ func (as *ApiSuite) TestGetUserBanner(t provider.T) {
 			End()
 	})
 
+	t.Run("Успешное получение активного баннера с указанной версией", func(t provider.T) {
+		_, err := as.bannerRepository.UpdateBanner(&entity.BannerUpdate{
+			Id:        bannerList[cashedBanner].Id,
+			Content:   types.NewObject[types.Content](updatedContent),
+			TagIds:    types.NewNullObject[[]types.Id](),
+			FeatureId: types.NewNullObject[types.Id](),
+			IsActive:  types.NewNullObject[bool](),
+		})
+		t.Require().NoError(err)
+
+		apitest.New().
+			Handler(as.router).
+			Get(path).
+			Query(bh.FeatureIdParam, "3").Query(bh.TagIdParam, "1").
+			Query(bh.VersionParam, "1").Query(cmid.UseLastRevisionParam, "true").
+			Header(middleware.TokenHeaderField, string(as.authService.GetUserToken())).
+			Expect(t).
+			Body(string(bannerContentList[cashedBanner])).
+			Status(http.StatusOK).
+			End()
+	})
+
 	t.Run("Успешное получение активного баннера из кэша", func(t provider.T) {
 		apitest.New().
 			Handler(as.router).
@@ -206,7 +243,7 @@ func (as *ApiSuite) TestGetUserBanner(t provider.T) {
 			Query(bh.FeatureIdParam, "4").Query(bh.TagIdParam, "1").
 			Header(middleware.TokenHeaderField, string(as.authService.GetUserToken())).
 			Expect(t).
-			Body(string(bannerList[otherCashedBanner].Content)).
+			Body(string(bannerContentList[otherCashedBanner])).
 			Status(http.StatusOK).
 			End()
 
@@ -225,7 +262,7 @@ func (as *ApiSuite) TestGetUserBanner(t provider.T) {
 			Query(bh.FeatureIdParam, "4").Query(bh.TagIdParam, "1").
 			Header(middleware.TokenHeaderField, string(as.authService.GetUserToken())).
 			Expect(t).
-			Body(string(bannerList[otherCashedBanner].Content)).
+			Body(string(bannerContentList[otherCashedBanner])).
 			Status(http.StatusOK).
 			End()
 

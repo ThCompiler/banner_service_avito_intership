@@ -1,10 +1,10 @@
 package main
 
 import (
+	"bannersrv/internal/app/config"
 	"flag"
 	"log"
 
-	"bannersrv/config"
 	"bannersrv/internal/app"
 )
 

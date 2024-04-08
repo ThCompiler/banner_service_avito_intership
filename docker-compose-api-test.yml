@@ -24,7 +24,7 @@ services:
       - postgis-data-test:/var/lib/postgresql
       - ./script:/docker-entrypoint-initdb.d
     env_file:
-      - ./env/api_test.env
+      - config/env/api_test.env
     ports:
       - "5432:5432"
     restart: on-failure
@@ -45,5 +45,5 @@ services:
       - chaches-data-test:/data
     restart: always
 networks:
-  default:
+  default-test:
     driver: bridge

@@ -12,7 +12,7 @@ definitions:
       is_active:
         description: Флаг активности баннера
         type: boolean
-      tags_ids:
+      tag_ids:
         description: Идентификаторы тегов
         items:
           type: integer
@@ -30,7 +30,7 @@ definitions:
       is_active:
         description: Флаг активности баннера
         type: boolean
-      tags_ids:
+      tag_ids:
         description: Идентификаторы тегов
         items:
           type: integer
@@ -42,9 +42,6 @@ definitions:
         description: Идентификатор баннера
         format: uint64
         type: integer
-      content:
-        description: Содержимое баннера
-        type: object
       created_at:
         description: Дата создания баннера
         format: date-time
@@ -65,12 +62,31 @@ definitions:
         description: Дата обновления баннера
         format: date-time
         type: string
+      versions:
+        description: Последние три версии баннера
+        items:
+          $ref: '#/definitions/response.Content'
+        type: array
     type: object
   response.BannerId:
     properties:
       banner_id:
         description: Идентификатор созданного баннера
         format: uint64
+        type: integer
+    type: object
+  response.Content:
+    properties:
+      content:
+        description: Содержимое баннера
+        type: object
+      created_at:
+        description: Дата создания версии
+        format: date-time
+        type: string
+      version:
+        description: Версия содержимого баннера
+        format: uint32
         type: integer
     type: object
   tools.Error:
@@ -246,6 +262,43 @@ paths:
       summary: Обновление баннера.
       tags:
       - banner
+  /filter_banner:
+    delete:
+      description: Удаляет баннеры на основе фильтра по фиче или тегу. Обязателен
+        один из query параметров.
+      parameters:
+      - description: Идентификатор тэга группы пользователей
+        in: query
+        name: tag_id
+        type: integer
+      - description: Идентификатор фичи
+        in: query
+        name: feature_id
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Баннеры успешно удалены
+        "400":
+          description: Некорректные данные
+          schema:
+            $ref: '#/definitions/tools.Error'
+        "401":
+          description: Пользователь не авторизован
+        "403":
+          description: Пользователь не имеет доступа
+        "404":
+          description: Баннер с указанными тэгом и фичёй не найден
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            $ref: '#/definitions/tools.Error'
+      security:
+      - AdminToken: []
+      summary: Удаление всех баннеров c фильтрацией по фиче или тегу
+      tags:
+      - banner
   /token/admin:
     get:
       description: Возвращает токен с правами админа.
@@ -274,7 +327,8 @@ paths:
       - auth
   /user_banner:
     get:
-      description: Возвращает баннер на основании тэга группы пользователей и фичи.
+      description: Возвращает баннер на основании тэга группы пользователей, фичи
+        и версии, если версия не указана, то вернётся последняя.
       parameters:
       - description: Идентификатор тэга группы пользователей
         in: query
@@ -285,6 +339,10 @@ paths:
         in: query
         name: feature_id
         required: true
+        type: integer
+      - description: Версия баннера
+        in: query
+        name: version
         type: integer
       - description: Получать актуальную информацию
         in: query

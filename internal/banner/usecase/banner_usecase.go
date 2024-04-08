@@ -26,12 +26,7 @@ func NewBannerUsecase(banner banner.Repository) *BannerUsecase {
 
 func (bu *BannerUsecase) CreateBanner(tagIds []types.Id, featureId types.Id,
 	content json.RawMessage, isActive bool) (types.Id, error) {
-	return bu.rep.CreateBanner(&entity.Banner{
-		TagIds:    tagIds,
-		FeatureId: featureId,
-		Content:   types.Content(content),
-		IsActive:  isActive,
-	})
+	return bu.rep.CreateBanner(featureId, tagIds, types.Content(content), isActive)
 }
 
 func (bu *BannerUsecase) DeleteBanner(id types.Id) error {
@@ -65,15 +60,22 @@ func (bu *BannerUsecase) GetAdminBanners(featureId *types.Id, tagId *types.Id,
 		return nil, err
 	}
 
-	return slices.Map(banners, func(b entity.Banner) models.Banner {
-		return *models.FromBannerEntity(&b)
+	return slices.Map(banners, func(b *entity.Banner) models.Banner {
+		return *models.FromBannerEntity(b)
 	}), nil
 }
 
-func (bu *BannerUsecase) GetUserBanner(featureId types.Id, tagId types.Id) (json.RawMessage, error) {
-	content, err := bu.rep.GetBanner(featureId, tagId)
+func (bu *BannerUsecase) GetUserBanner(featureId types.Id, tagId types.Id, version *uint32) (json.RawMessage, error) {
+	content, err := bu.rep.GetBanner(featureId, tagId, *types.ObjectFromPointer(version))
 	if err != nil {
 		return nil, err
 	}
 	return json.RawMessage(content), nil
+}
+
+func (bu *BannerUsecase) DeleteFilteredBanner(featureId *types.Id, tagId *types.Id) error {
+	return bu.rep.DeleteFilteredBanner(&entity.BannerInfo{
+		FeatureId: types.ObjectFromPointer(featureId),
+		TagId:     types.ObjectFromPointer(tagId),
+	})
 }

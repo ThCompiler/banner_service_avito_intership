@@ -23,7 +23,7 @@ func CacheBanner(cacheManager caches.Manager) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		l := middleware.GetLogger(c)
 
-		var useLastRevision = false
+		var skipCache = false
 		if rawUseLastRevision, ok := c.GetQuery(UseLastRevisionParam); ok {
 			tmp, err := strconv.ParseBool(rawUseLastRevision)
 			if err != nil {
@@ -33,10 +33,10 @@ func CacheBanner(cacheManager caches.Manager) gin.HandlerFunc {
 				return
 			}
 
-			useLastRevision = tmp
+			skipCache = tmp
 		}
 
-		if !useLastRevision {
+		if !skipCache {
 			err := loadCache(c, cacheManager, l)
 			if err == nil {
 				return
@@ -54,6 +54,8 @@ func CacheBanner(cacheManager caches.Manager) gin.HandlerFunc {
 
 func loadCache(c *gin.Context, cacheManager caches.Manager, l logger.Interface) error {
 	var tagId, featureId types.Id
+	var version = new(uint32)
+
 	if rawTagId, err := tools.ParseQueryParamToUint64(c, handlers.TagIdParam,
 		handlers.ErrorFeatureIdNotPresented, handlers.ErrorTagIdIncorrectType, l); err == nil {
 		tagId = (types.Id)(rawTagId)
@@ -68,17 +70,27 @@ func loadCache(c *gin.Context, cacheManager caches.Manager, l logger.Interface) 
 		return err
 	}
 
-	content, err := cacheManager.HaveCache(featureId, tagId)
+	if rawVersion, err := tools.ParseQueryParamToUint64(c, handlers.VersionParam,
+		handlers.ErrorVersionNotPresented, handlers.ErrorVersionIncorrectType, l); err == nil {
+		*version = uint32(rawVersion)
+	} else {
+		if !errors.Is(err, handlers.ErrorVersionNotPresented) {
+			return err
+		}
+		version = nil
+	}
+
+	content, err := cacheManager.HaveCache(featureId, tagId, version)
 	if err != nil {
 		if !errors.Is(err, cr.ErrorCacheMiss) {
 			l.Error(errors.Wrapf(err,
-				"failed to check cached banner with feature id %d and tag id %d", featureId, tagId))
+				"failed to check cached banner with feature id %d, tag id %d, version %d", featureId, tagId, version))
 		}
 		return cr.ErrorCacheMiss
 	}
 
 	tools.SendStatus(c, http.StatusOK, json.RawMessage(content), l)
-	l.Info("banner wad loaded from cache with feature id %d and tag id %d", featureId, tagId)
+	l.Info("banner wad loaded from cache with feature id %d and tag id %d, version %d", featureId, tagId, version)
 
 	return nil
 }

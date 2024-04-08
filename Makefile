@@ -1,6 +1,6 @@
 LOG_DIR=./logs
 SWAG_DIRS=./internal/app/delivery/http/v1/,./internal/banner/delivery/http/v1/handlers,./internal/banner/delivery/http/v1/models/request,./internal/banner/delivery/http/v1/models/response,./external/auth/delivery/http/v1/handlers,./internal/app/delivery/http/tools
-include ./env/api_test.env
+include ./config/env/api_test.env
 
 .PHONY: build
 build:
@@ -26,11 +26,15 @@ run-api-test: run-environment
 
 .PHONY: run
 run:
-	sudo docker compose up -d
+	sudo docker compose --env-file ./config/env/docker_run.env up -d
 
 .PHONY: run-verbose
 run-verbose:
-	sudo docker compose up
+	sudo docker compose --env-file ./config/env/docker_run.env up
+
+.PHONY: stop
+stop:
+	sudo docker compose --env-file ./config/env/docker_run.env stop
 
 .PHONY: open-last-log
 open-last-log:

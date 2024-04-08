@@ -12,4 +12,9 @@ var (
 	ErrorOffsetNotPresented  = errors.New("offset not presented in query")
 	ErrorLimitIncorrectType  = errors.New("limit have incorrect type")
 	ErrorOffsetIncorrectType = errors.New("offset have incorrect type")
+
+	ErrorVersionIncorrectType = errors.New("version have incorrect type")
+	ErrorVersionNotPresented  = errors.New("version not presented in query")
+
+	ErrorParamsNotPresented = errors.New("feature id and tag id not presented in query")
 )

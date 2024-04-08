@@ -1,6 +1,8 @@
 package middleware
 
 import (
+	"bannersrv/internal/pkg/metrics"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -20,7 +22,7 @@ const (
 	LoggerField types.ContextField = "logger"
 )
 
-func RequestLogger(l logger.Interface) gin.HandlerFunc {
+func RequestLogger(l logger.Interface, metricsManager metrics.Manager) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Start timer
 		start := time.Now()
@@ -54,8 +56,9 @@ func RequestLogger(l logger.Interface) gin.HandlerFunc {
 		latency := timeStamp.Sub(start)
 		statusCode := c.Writer.Status()
 
+		truncatedLatency := latency
 		if latency > time.Minute {
-			latency = latency.Truncate(time.Second)
+			truncatedLatency = latency.Truncate(time.Second)
 		}
 
 		l.Info("[HTTP] End - %d | %v | %s | %s  %v | %v |",
@@ -64,8 +67,33 @@ func RequestLogger(l logger.Interface) gin.HandlerFunc {
 			clientIP,
 			method,
 			path,
-			latency,
+			truncatedLatency,
 		)
+
+		// Save metrics
+		if metricsManager == nil {
+			return
+		}
+
+		metricsManager.GetRequestCounter().Inc()
+
+		if statusCode < 300 {
+			metricsManager.GetSuccessHits().WithLabelValues(
+				strconv.Itoa(statusCode),
+				path,
+				method,
+			).Inc()
+		} else {
+			metricsManager.GetErrorHits().WithLabelValues(
+				strconv.Itoa(statusCode),
+				path,
+				method,
+			).Inc()
+		}
+
+		metricsManager.GetExecution().
+			WithLabelValues(strconv.Itoa(statusCode), path, method).
+			Observe(latency.Seconds())
 	}
 }
 

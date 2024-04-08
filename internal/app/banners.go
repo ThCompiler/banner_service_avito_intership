@@ -3,14 +3,17 @@ package app
 import (
 	ah "bannersrv/external/auth/delivery/http/v1/handlers"
 	au "bannersrv/external/auth/usecase"
+	"bannersrv/internal/app/config"
 	v1 "bannersrv/internal/app/delivery/http/v1"
 	bh "bannersrv/internal/banner/delivery/http/v1/handlers"
 	bp "bannersrv/internal/banner/repository/postgres"
 	bu "bannersrv/internal/banner/usecase"
 	cm "bannersrv/internal/caches/manager"
 	cr "bannersrv/internal/caches/repository/redis"
+	"bannersrv/internal/pkg/metrics/prometheus"
 	"context"
 	"fmt"
+	"github.com/go-co-op/gocron/v2"
 	"github.com/redis/go-redis/v9"
 	"os"
 	"os/signal"
@@ -18,10 +21,9 @@ import (
 
 	"github.com/jmoiron/sqlx"
 
-	"bannersrv/config"
-
 	"bannersrv/pkg/server"
 
+	_ "github.com/jackc/pgx/v5/stdlib"
 	_ "github.com/lib/pq"
 )
 
@@ -37,11 +39,14 @@ func Run(cfg *config.Config) {
 	}()
 
 	// Postgres
-	pg, err := sqlx.Open("postgres", cfg.Postgres.URL)
+	pg, err := sqlx.Open("pgx", cfg.Postgres.URL)
 	if err != nil {
 		l.Fatal("[App] Init - postgres.New: %s", err)
 	}
 	defer pg.Close()
+
+	pg.SetMaxOpenConns(100)
+	pg.SetMaxIdleConns(10)
 
 	if err := pg.Ping(); err != nil {
 		l.Fatal("[App] Init - can't check connection to sql with error %s", err)
@@ -61,8 +66,24 @@ func Run(cfg *config.Config) {
 
 	l.Info("[App] Init - success check connection to redis")
 
+	// Cron
+	cronScheduler, err := gocron.NewScheduler()
+	if err != nil {
+		l.Fatal("[App] Init - start cronScheduler error: %s", err)
+	}
+
+	// metrics
+	metricsManager := prometheus.NewPrometheusMetrics("main")
+	if err := metricsManager.SetupMonitoring(); err != nil {
+		l.Fatal("[App] Init - can't register metrics: %s", err)
+	}
+
 	// Repository
-	bannerRepository := bp.NewBannerRepository(pg)
+	bannerRepository, err := bp.NewBannerRepository(pg, cronScheduler, l)
+	if err != nil {
+		l.Fatal("[App] Init - initialize BannerRepository error: %s", err)
+	}
+
 	cacheRepository := cr.NewCashRedis(rds)
 
 	// Use-cases
@@ -75,7 +96,8 @@ func Run(cfg *config.Config) {
 	authHandlers := ah.NewAuthHandlers(authService)
 
 	// routes
-	router, err := v1.NewRouter("/api", l, prepareRoutes(bannerHandlers, cacheManager, authService, authHandlers))
+	router, err := v1.NewRouter("/api", l,
+		prepareRoutes(bannerHandlers, cacheManager, authService, authHandlers), metricsManager)
 	if err != nil {
 		l.Fatal("[App] Init - init handler error: %s", err)
 	}
@@ -85,6 +107,7 @@ func Run(cfg *config.Config) {
 	// Waiting signal
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
+	cronScheduler.Start()
 
 	l.Info("[App] Start - server started")
 
@@ -98,7 +121,12 @@ func Run(cfg *config.Config) {
 	// Shutdown
 	err = httpServer.Shutdown()
 	if err != nil {
-		l.Error(fmt.Errorf("[App] Stop - httpServer.Shutdown: %s", err))
+		l.Fatal(fmt.Errorf("[App] Stop - httpServer.Shutdown: %s", err))
+	}
+
+	err = cronScheduler.Shutdown()
+	if err != nil {
+		l.Fatal(fmt.Errorf("[App] Stop - cronScheduler.Shutdown: %s", err))
 	}
 
 	l.Info("[App] Stop - server stopped")
