@@ -4,22 +4,21 @@ volumes:
   chaches-data:
   grafana-storage:
 services:
-#  ngnix-proxy:
-#    image: nginx:latest
-#    expose:
-#      - "8080"
-#    ports:
-#      - "8080:8080"
-#    depends_on:
-#      - main
-#      - grafana
-#      - prometheus
-#    networks:
-#      - default
-#    volumes:
-#      - ./logs-ngnix:/var/log/nginx
-#      - ${NGNIX_CONFIG}:/etc/nginx/conf.d/default.conf
-#    restart: always
+  ngnix-proxy:
+    image: nginx:latest
+    expose:
+      - "8081"
+    ports:
+      - "8081:8081"
+    depends_on:
+      - grafana
+      - prometheus
+    networks:
+      - default
+    volumes:
+      - ./logs-ngnix:/var/log/nginx
+      - ${NGNIX_CONFIG}:/etc/nginx/conf.d/default.conf
+    restart: always
   main:
     image: main
     networks:
@@ -40,6 +39,7 @@ services:
     command: "postgres -c shared_preload_libraries='pg_stat_statements'"
     volumes:
       - postgis-data:/var/lib/postgresql
+      - ./config/services/postgres.conf:/etc/postgresql/postgresql.conf
       - ./script:/docker-entrypoint-initdb.d
     environment:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
@@ -64,25 +64,25 @@ services:
     volumes:
       - chaches-data:/data
     restart: always
-#  prometheus:
-#    image: prom/prometheus
-#    expose:
-#      - "9090"
-#    volumes:
-#      - ./config/prometheus:/etc/prometheus
-#    command:
-#      - '--config.file=/etc/prometheus/prometheus.yml'
-#      - '--web.external-url=${PROMETHEUS_URL}'
-#  grafana:
-#    image: grafana/grafana
-#    depends_on:
-#      - prometheus
-#    volumes:
-#      - grafana-storage:/var/lib/grafana
-#    environment:
-#      - GF_SERVER_ROOT_URL=${GRAFANA_URL}
-#    expose:
-#      - "3000"
+  prometheus:
+    image: prom/prometheus
+    expose:
+      - "9090"
+    volumes:
+      - ./config/prometheus:/etc/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--web.external-url=${PROMETHEUS_URL}'
+  grafana:
+    image: grafana/grafana
+    depends_on:
+      - prometheus
+    volumes:
+      - grafana-storage:/var/lib/grafana
+    environment:
+      - GF_SERVER_ROOT_URL=${GRAFANA_URL}
+    expose:
+      - "3000"
 networks:
   default:
     driver: bridge

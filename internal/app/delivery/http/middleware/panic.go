@@ -9,6 +9,7 @@ import (
 	"bannersrv/pkg/logger"
 )
 
+// CheckPanic обрабатывает панические ситуации, которые могли возникнуть при обработке запросов
 func CheckPanic(c *gin.Context) {
 	defer func(log logger.Interface, c *gin.Context) {
 		if err := recover(); err != nil {

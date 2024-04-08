@@ -22,6 +22,7 @@ const (
 	LoggerField types.ContextField = "logger"
 )
 
+// RequestLogger инициализирует контекст логгера для пришедшего запроса.
 func RequestLogger(l logger.Interface, metricsManager metrics.Manager) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Start timer
@@ -41,7 +42,7 @@ func RequestLogger(l logger.Interface, metricsManager metrics.Manager) gin.Handl
 
 		clientIP := c.ClientIP()
 
-		l.Info("[HTTP] Start - | %v | %s | %s  %v |",
+		lg.Info("[HTTP] Start - | %v | %s | %s  %v |",
 			start.Format(DataFormat),
 			clientIP,
 			method,
@@ -61,7 +62,7 @@ func RequestLogger(l logger.Interface, metricsManager metrics.Manager) gin.Handl
 			truncatedLatency = latency.Truncate(time.Second)
 		}
 
-		l.Info("[HTTP] End - %d | %v | %s | %s  %v | %v |",
+		lg.Info("[HTTP] End - %d | %v | %s | %s  %v | %v |",
 			statusCode,
 			timeStamp.Format(DataFormat),
 			clientIP,

@@ -10,6 +10,7 @@ import (
 	"net/http"
 )
 
+// WithAdminToken проверяет что передан админский токен
 func WithAdminToken(tokenService token.Service) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		l := middleware.GetLogger(c)
@@ -33,6 +34,7 @@ func WithAdminToken(tokenService token.Service) gin.HandlerFunc {
 	}
 }
 
+// WithUserToken проверяет что передан пользовательский токен
 func WithUserToken(tokenService token.Service) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		l := middleware.GetLogger(c)

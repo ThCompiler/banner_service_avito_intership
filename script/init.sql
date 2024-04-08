@@ -67,3 +67,8 @@ CREATE OR REPLACE TRIGGER banner_insert_version
     ON version_banner
     FOR EACH ROW
 EXECUTE FUNCTION banner_insert_version_trigger();
+
+-- Получены в ходе тестирование под нагрузкой запросов на получение
+CREATE INDEX banner_feature on features_tags_banner (feature_id);
+CREATE INDEX banner_tag on features_tags_banner (tag_id);
+CREATE INDEX banner_feature_ids on features_tags_banner (banner_id);

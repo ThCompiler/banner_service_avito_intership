@@ -56,43 +56,41 @@ const (
 	`
 
 	getQuery = `
-		WITH selected_banner AS (
-			SELECT banner_id FROM features_tags_banner WHERE feature_id = $1 and tag_id = $2
-		) 
-		SELECT vb.content FROM banner 
-		    INNER JOIN selected_banner on (selected_banner.banner_id = banner.id)
-		    LEFT JOIN version_banner as vb on (vb.banner_id = banner.id)
-		WHERE is_active and not deleted and vb.version = COALESCE($3::bigint, banner.last_version) LIMIT 1
+		SELECT vb.content FROM banner
+		   INNER JOIN features_tags_banner on (features_tags_banner.banner_id = banner.id)
+		   LEFT JOIN version_banner as vb on (vb.banner_id = banner.id)
+		WHERE is_active and not deleted and vb.version = COALESCE($3::bigint, banner.last_version) 
+		  		and feature_id = $1 and tag_id = $2 LIMIT 1
 	`
 
 	filterQuery = `
-		WITH filter_banner AS (
-			SELECT DISTINCT banner_id FROM features_tags_banner 
-			WHERE (CASE WHEN $1::bigint IS NOT NULL THEN feature_id = $1 ELSE true END)
+		SELECT banner.id, array_agg(ftb.tag_id)::bigint[] as tag_ids, ftb.feature_id, banner.is_active,
+       		banner.created_at, banner.updated_at FROM banner
+		INNER JOIN features_tags_banner as ftb ON (ftb.banner_id = banner.id)
+		WHERE not deleted and banner.id in (
+			(
+				SELECT DISTINCT banner_id FROM features_tags_banner
+				WHERE (CASE WHEN $1::bigint IS NOT NULL THEN feature_id = $1 ELSE true END)
       			and (CASE WHEN $2::bigint IS NOT NULL THEN tag_id = $2 ELSE true END) 
-		), selected_banner AS (
-			SELECT ftb.banner_id, ftb.feature_id, array_agg(ftb.tag_id)::bigint[] as tag_ids 
-			FROM features_tags_banner as ftb
-			INNER JOIN filter_banner ON (filter_banner.banner_id = ftb.banner_id)
-			GROUP BY ftb.banner_id, ftb.feature_id
-		) 
-		SELECT id, tag_ids, feature_id, is_active, created_at, updated_at FROM banner 
-		    INNER JOIN selected_banner ON (selected_banner.banner_id = banner.id) 
-		    WHERE not deleted
-			LIMIT $3 OFFSET $4
+			)
+		)
+		GROUP BY banner.id, ftb.feature_id
+		LIMIT $3 OFFSET $4
 	`
 
 	getVersionQuery = `
 		SELECT banner_id, content, version, created_at FROM version_banner WHERE banner_id in (?)
 	`
-
+	//	WITH filter_banner AS (
+	//SELECT DISTINCT banner_id FROM features_tags_banner
+	//WHERE (CASE WHEN $1::bigint IS NOT NULL THEN feature_id = $1 ELSE true END)
+	//and (CASE WHEN $2::bigint IS NOT NULL THEN tag_id = $2 ELSE true END)
+	//)
 	delayedDeletionQuery = `
-		WITH filter_banner AS (
-			SELECT DISTINCT banner_id FROM features_tags_banner 
-			WHERE (CASE WHEN $1::bigint IS NOT NULL THEN feature_id = $1 ELSE true END)
-      			and (CASE WHEN $2::bigint IS NOT NULL THEN tag_id = $2 ELSE true END) 
-		)
-		UPDATE banner SET deleted = true FROM filter_banner WHERE banner.id = filter_banner.banner_id
+		UPDATE banner SET deleted = true FROM features_tags_banner 
+			 WHERE banner.id = features_tags_banner.banner_id and
+				   (CASE WHEN $1::bigint IS NOT NULL THEN feature_id = $1 ELSE true END)
+					and (CASE WHEN $2::bigint IS NOT NULL THEN tag_id = $2 ELSE true END) 
 	`
 
 	cronDeleteQuery = `

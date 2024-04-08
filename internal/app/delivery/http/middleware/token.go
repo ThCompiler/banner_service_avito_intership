@@ -13,6 +13,7 @@ const (
 	TokenField types.ContextField = "token"
 )
 
+// RequestToken проверяет, что в заголовке запроса передан токен и сохраняет его в контекст запроса.
 func RequestToken(c *gin.Context) {
 	l := GetLogger(c)
 

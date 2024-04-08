@@ -2,13 +2,43 @@ LOG_DIR=./logs
 SWAG_DIRS=./internal/app/delivery/http/v1/,./internal/banner/delivery/http/v1/handlers,./internal/banner/delivery/http/v1/models/request,./internal/banner/delivery/http/v1/models/response,./external/auth/delivery/http/v1/handlers,./internal/app/delivery/http/tools
 include ./config/env/api_test.env
 
+# Запуск
+
+.PHONY: run
+run:
+	sudo docker compose --env-file ./config/env/docker_run.env up -d
+
+.PHONY: run-verbose
+run-verbose:
+	sudo docker compose --env-file ./config/env/docker_run.env up
+
+.PHONY: stop
+stop:
+	sudo docker compose --env-file ./config/env/docker_run.env stop
+
+.PHONY: down
+down:
+	sudo docker compose --env-file ./config/env/docker_run.env down
+
+# Сборка
+
 .PHONY: build
 build:
 	go build -o server -v ./cmd
 
+.PHONY: swag-gen
+swag-gen:
+	swag init --parseDependency --parseInternal --parseDepth 1 -d $(SWAG_DIRS) -g ./swag_info.go -o docs
+
+.PHONY: swag-fmt
+swag-fmt:
+	swag fmt -d $(SWAG_DIRS) -g ./swag_info.go
+
 .PHONY: build-docker
 build-docker:
 	sudo docker build --no-cache --network host -f ./Dockerfile . --tag main
+
+# Тест интеграции
 
 .PHONY: run-environment
 run-environment:
@@ -24,17 +54,7 @@ run-api-test: run-environment
 	go test -tags=integration ./...
 	make down-environment
 
-.PHONY: run
-run:
-	sudo docker compose --env-file ./config/env/docker_run.env up -d
-
-.PHONY: run-verbose
-run-verbose:
-	sudo docker compose --env-file ./config/env/docker_run.env up
-
-.PHONY: stop
-stop:
-	sudo docker compose --env-file ./config/env/docker_run.env stop
+# Дополнительно
 
 .PHONY: open-last-log
 open-last-log:
@@ -47,14 +67,6 @@ clear-logs:
 .PHONY: mocks
 mocks:
 	go generate -n $$(go list ./internal/...)
-
-.PHONY: swag-gen
-swag-gen:
-	swag init --parseDependency --parseInternal --parseDepth 1 -d $(SWAG_DIRS) -g ./swag_info.go -o docs
-
-.PHONY: swag-fmt
-swag-fmt:
-	swag fmt -d $(SWAG_DIRS) -g ./swag_info.go
 
 .PHONY: run-coverage
 run-coverage:

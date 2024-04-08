@@ -18,6 +18,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 
@@ -45,8 +46,9 @@ func Run(cfg *config.Config) {
 	}
 	defer pg.Close()
 
-	pg.SetMaxOpenConns(100)
-	pg.SetMaxIdleConns(10)
+	pg.SetConnMaxIdleTime(time.Duration(cfg.Postgres.TTLIdleConnections) * time.Millisecond)
+	pg.SetMaxOpenConns(cfg.Postgres.MaxConnections)
+	pg.SetMaxIdleConns(cfg.Postgres.MaxIdleConnections)
 
 	if err := pg.Ping(); err != nil {
 		l.Fatal("[App] Init - can't check connection to sql with error %s", err)

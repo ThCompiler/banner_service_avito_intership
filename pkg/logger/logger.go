@@ -109,7 +109,6 @@ func withLowePriorityLevel(param Params, out io.Writer, highPriority zap.LevelEn
 		return lvl < toZapLevel(param.Level)
 	})
 
-	topicDebugging := zapcore.AddSync(out)
 	topicErrors := zapcore.AddSync(out)
 	fileEncoder := zapcore.NewJSONEncoder(zap.NewProductionEncoderConfig())
 
@@ -121,14 +120,12 @@ func withLowePriorityLevel(param Params, out io.Writer, highPriority zap.LevelEn
 		return zapcore.NewTee(
 			zapcore.NewCore(fileEncoder, topicErrors, highPriority),
 			zapcore.NewCore(consoleEncoder, consoleErrors, highPriority),
-			zapcore.NewCore(fileEncoder, topicDebugging, lowPriority),
 			zapcore.NewCore(consoleEncoder, consoleDebugging, lowPriority),
 		)
 	}
 
 	return zapcore.NewTee(
 		zapcore.NewCore(fileEncoder, topicErrors, highPriority),
-		zapcore.NewCore(fileEncoder, topicDebugging, lowPriority),
 	)
 }
 
