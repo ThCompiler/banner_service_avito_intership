@@ -12,7 +12,7 @@ services:
       - "8081:8081"
     depends_on:
       - grafana
-      - prometheus
+ #     - prometheus
     networks:
       - default
     volumes:
@@ -75,8 +75,8 @@ services:
       - '--web.external-url=${PROMETHEUS_URL}'
   grafana:
     image: grafana/grafana
-    depends_on:
-      - prometheus
+ #   depends_on:
+ #     - prometheus
     volumes:
       - grafana-storage:/var/lib/grafana
     environment:

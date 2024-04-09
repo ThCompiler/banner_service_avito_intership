@@ -7,12 +7,22 @@ import (
 	"github.com/ilyakaznacheev/cleanenv"
 )
 
+type Mode string
+
+const (
+	Release     Mode = "release"
+	Debug       Mode = "debug"
+	DebugProf   Mode = "debug+prof"
+	ReleaseProf Mode = "release+prof"
+)
+
 type (
 	Config struct {
 		Port       string     `yaml:"port"`
 		Postgres   PG         `yaml:"postgres"`
 		Redis      Redis      `yaml:"redis"`
 		LoggerInfo LoggerInfo `yaml:"logger"`
+		Mode       Mode       `yaml:"mode"`
 	}
 
 	LoggerInfo struct {

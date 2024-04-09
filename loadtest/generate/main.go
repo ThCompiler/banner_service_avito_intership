@@ -11,7 +11,6 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/tidwall/randjson"
 	"log"
-	"math/rand/v2"
 	"os"
 )
 
@@ -22,12 +21,13 @@ type CorrectPair struct {
 }
 
 func main() {
-	var featuresCount, tagsCount uint64
+	var featuresCount, tagsCount, countBanners uint64
 	var configPath string
 
 	flag.StringVar(&configPath, "config", "./config/localhost-config.yaml", "путь к конфигу подключения")
 	flag.Uint64Var(&featuresCount, "features", 1000, "число фичей")
 	flag.Uint64Var(&tagsCount, "tags", 1000, "число тэгов")
+	flag.Uint64Var(&countBanners, "banners", 8000, "число баннеров")
 	flag.Parse()
 
 	cfg, err := config.NewConfig(configPath)
@@ -69,7 +69,7 @@ func main() {
 		tagsIds[i] = types.Id(i + 1)
 	}
 
-	countTagsInBanner := rand.Uint64N(tagsCount/4) + 4
+	countTagsInBanner := tagsCount / (countBanners / featuresCount)
 
 	result := make([]CorrectPair, 0)
 

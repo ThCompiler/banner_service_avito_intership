@@ -2,6 +2,7 @@ package prometheus
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
+	"time"
 )
 
 type MetricsManager struct {
@@ -22,8 +23,12 @@ func NewPrometheusMetrics(serviceName string) *MetricsManager {
 			Help: "Count errors response from service",
 		}, []string{"status", "path", "method"}),
 		ExecutionTime: prometheus.NewHistogramVec(prometheus.HistogramOpts{
-			Name: serviceName + "_durations",
-			Help: "Duration execution of request",
+			Name:                            serviceName + "_durations",
+			Help:                            "Duration execution of request",
+			Buckets:                         prometheus.DefBuckets,
+			NativeHistogramMaxBucketNumber:  100,
+			NativeHistogramMinResetDuration: 100 * time.Millisecond,
+			NativeHistogramMaxZeroThreshold: 120,
 		}, []string{"status", "path", "method"}),
 		TotalHits: prometheus.NewCounter(prometheus.CounterOpts{
 			Name: serviceName + "_total_hits",

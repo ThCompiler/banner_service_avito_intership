@@ -98,8 +98,8 @@ func Run(cfg *config.Config) {
 	authHandlers := ah.NewAuthHandlers(authService)
 
 	// routes
-	router, err := v1.NewRouter("/api", l,
-		prepareRoutes(bannerHandlers, cacheManager, authService, authHandlers), metricsManager)
+	routes := prepareRoutes(bannerHandlers, cacheManager, authService, authHandlers)
+	router, err := v1.NewRouter("/api", routes, cfg.Mode, l, metricsManager)
 	if err != nil {
 		l.Fatal("[App] Init - init handler error: %s", err)
 	}

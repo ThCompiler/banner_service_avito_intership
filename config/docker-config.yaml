@@ -1,4 +1,5 @@
 port: 8080
+mode: release
 postgres:
   url: "host=banner-bd port=5432 user=intern password=fyr8as4da6 dbname=banner_db sslmode=disable"
   max_connections: 10
@@ -8,7 +9,7 @@ redis:
   url: "redis://chaches/0"
 logger:
   app_name: "banner"
-  level: 'info'
+  level: 'warn'
   directory: './app-log/'
   use_std_and_file: false
   allow_show_low_level: false

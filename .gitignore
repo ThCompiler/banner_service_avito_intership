@@ -25,3 +25,5 @@ app-log
 logs
 allure-results/
 logs*
+
+loadtest/info*.json
