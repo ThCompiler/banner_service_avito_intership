@@ -2,10 +2,13 @@ package middleware
 
 import (
 	"bannersrv/internal/pkg/metrics"
-	"github.com/gin-gonic/gin"
 	"strconv"
 	"time"
+
+	"github.com/gin-gonic/gin"
 )
+
+const successCodeThreshold = 300
 
 func RequestMetrics(metricsManager metrics.Manager) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -30,7 +33,7 @@ func RequestMetrics(metricsManager metrics.Manager) gin.HandlerFunc {
 
 		metricsManager.GetRequestCounter().Inc()
 
-		if statusCode < 300 {
+		if statusCode < successCodeThreshold {
 			metricsManager.GetSuccessHits().WithLabelValues(
 				strconv.Itoa(statusCode),
 				path,

@@ -7,24 +7,31 @@ import (
 	"bannersrv/internal/banner/delivery/http/v1/models/request"
 	"bannersrv/internal/banner/delivery/http/v1/models/response"
 	"bannersrv/internal/banner/models"
-	br "bannersrv/internal/banner/repository"
 	"bannersrv/internal/caches"
 	"bannersrv/internal/pkg/types"
 	"bannersrv/pkg/slices"
-	"github.com/gin-gonic/gin"
-	"github.com/pkg/errors"
 	"net/http"
 	"strconv"
+
+	br "bannersrv/internal/banner/repository"
+
+	"github.com/gin-gonic/gin"
+	"github.com/pkg/errors"
 )
 
-const BannerIdField = "id"
+const BannerIDField = "id"
 
 const (
-	TagIdParam     = "tag_id"
-	FeatureIdParam = "feature_id"
+	TagIDParam     = "tag_id"
+	FeatureIDParam = "feature_id"
 	VersionParam   = "version"
 	limitParam     = "limit"
 	offsetParam    = "offset"
+)
+
+const (
+	size64 = 64
+	base10 = 10
 )
 
 type BannerHandlers struct {
@@ -44,7 +51,7 @@ func NewBannerHandlers(usecase banner.Usecase, cache caches.Manager) *BannerHand
 //	@Accept			json
 //	@Param			request	body	request.CreateBanner	true	"Информация о добавляемом пользователе"
 //	@Produce		json
-//	@Success		201	{object}	response.BannerId	"Баннер успешно добавлен в систему"
+//	@Success		201	{object}	response.BannerID	"Баннер успешно добавлен в систему"
 //	@Failure		400	{object}	tools.Error			"Некорректные данные"
 //	@Failure		401	"Пользователь не авторизован"
 //	@Failure		403	"Пользователь не имеет доступа"
@@ -60,23 +67,26 @@ func (bh *BannerHandlers) CreateBanner(c *gin.Context) {
 	var createBanner request.CreateBanner
 	if code, err := tools.ParseRequestBody(c.Request.Body, &createBanner, request.ValidateCreateBanner, l); err != nil {
 		tools.SendError(c, err, code, l)
+
 		return
 	}
 
-	createdId, err := bh.usecase.CreateBanner(createBanner.TagsIds, createBanner.FeatureId,
+	createdID, err := bh.usecase.CreateBanner(createBanner.TagsIDs, createBanner.FeatureID,
 		createBanner.Content, createBanner.IsActive)
 	if err != nil {
 		if errors.Is(err, br.ErrorBannerConflictExists) {
 			tools.SendErrorStatus(c, err, http.StatusConflict, l)
+
 			return
 		}
 
 		tools.SendError(c, tools.ErrorServerError, http.StatusInternalServerError, l)
 		l.Error(errors.Wrapf(err, "can't create banner"))
+
 		return
 	}
 
-	tools.SendStatus(c, http.StatusCreated, &response.BannerId{BannerId: createdId}, l)
+	tools.SendStatus(c, http.StatusCreated, &response.BannerID{BannerID: createdID}, l)
 }
 
 // DeleteBanner
@@ -99,19 +109,23 @@ func (bh *BannerHandlers) DeleteBanner(c *gin.Context) {
 	l := middleware.GetLogger(c)
 
 	// Получение уникального идентификатора
-	id, err := strconv.ParseUint(c.Param(BannerIdField), 10, 64)
+	id, err := strconv.ParseUint(c.Param(BannerIDField), base10, size64)
 	if err != nil {
 		tools.SendError(c, errors.Wrapf(err, "try get banner id"), http.StatusBadRequest, l)
+
 		return
 	}
 
-	if err := bh.usecase.DeleteBanner(types.Id(id)); err != nil {
+	if err := bh.usecase.DeleteBanner(types.ID(id)); err != nil {
 		if errors.Is(err, br.ErrorBannerNotFound) {
 			tools.SendErrorStatus(c, err, http.StatusNotFound, l)
+
 			return
 		}
+
 		tools.SendError(c, tools.ErrorServerError, http.StatusInternalServerError, l)
 		l.Error(errors.Wrapf(err, "can't delete banner"))
+
 		return
 	}
 
@@ -141,9 +155,10 @@ func (bh *BannerHandlers) UpdateBanner(c *gin.Context) {
 	l := middleware.GetLogger(c)
 
 	// Получение уникального идентификатора
-	id, err := strconv.ParseUint(c.Param(BannerIdField), 10, 64)
+	id, err := strconv.ParseUint(c.Param(BannerIDField), base10, size64)
 	if err != nil {
 		tools.SendError(c, errors.Wrapf(err, "try get banner id"), http.StatusBadRequest, l)
+
 		return
 	}
 
@@ -151,21 +166,26 @@ func (bh *BannerHandlers) UpdateBanner(c *gin.Context) {
 	var updateBanner request.UpdateBanner
 	if code, err := tools.ParseRequestBody(c.Request.Body, &updateBanner, request.ValidateUpdateBanner, l); err != nil {
 		tools.SendError(c, err, code, l)
+
 		return
 	}
 
-	if err := bh.usecase.UpdateBanner(types.Id(id), updateBanner.ToModel()); err != nil {
+	if err := bh.usecase.UpdateBanner(types.ID(id), updateBanner.ToModel()); err != nil {
 		if errors.Is(err, br.ErrorBannerNotFound) {
 			tools.SendErrorStatus(c, err, http.StatusNotFound, l)
+
 			return
 		}
+
 		if errors.Is(err, br.ErrorBannerConflictExists) {
 			tools.SendErrorStatus(c, err, http.StatusConflict, l)
+
 			return
 		}
 
 		tools.SendError(c, tools.ErrorServerError, http.StatusInternalServerError, l)
 		l.Error(errors.Wrapf(err, "can't update banner"))
+
 		return
 	}
 
@@ -175,7 +195,10 @@ func (bh *BannerHandlers) UpdateBanner(c *gin.Context) {
 // GetUserBanner
 //
 //	@Summary		Получение баннера для пользователя.
-//	@Description	Возвращает баннер на основании тэга группы пользователей, фичи и версии, если версия не указана, то вернётся последняя.
+//	@Description	|
+//					Возвращает баннер на основании тэга группы пользователей, фичи и версии, если версия не указана,
+//					то вернётся последняя.
+//
 //	@Tags			banner
 //	@Param			tag_id				query	integer	true	"Идентификатор тэга группы пользователей"
 //	@Param			feature_id			query	integer	true	"Идентификатор фичи"
@@ -194,56 +217,53 @@ func (bh *BannerHandlers) UpdateBanner(c *gin.Context) {
 func (bh *BannerHandlers) GetUserBanner(c *gin.Context) {
 	l := middleware.GetLogger(c)
 
-	var tagId, featureId types.Id
-	var version = new(uint32)
-
-	if rawTagId, err := tools.ParseQueryParamToUint64(c, TagIdParam,
-		ErrorTagIdNotPresented, ErrorTagIdIncorrectType, l); err == nil {
-		tagId = types.Id(rawTagId)
-	} else {
+	tagID, err := tools.ParseQueryParamToTypesID(c, TagIDParam,
+		ErrorTagIDNotPresented, ErrorTagIDIncorrectType, l)
+	if err != nil {
 		tools.SendError(c, err, http.StatusBadRequest, l)
+
 		return
 	}
 
-	if rawFeatureId, err := tools.ParseQueryParamToUint64(c, FeatureIdParam,
-		ErrorFeatureIdNotPresented, ErrorFeatureIdIncorrectType, l); err == nil {
-		featureId = types.Id(rawFeatureId)
-	} else {
+	featureID, err := tools.ParseQueryParamToTypesID(c, FeatureIDParam,
+		ErrorFeatureIDNotPresented, ErrorFeatureIDIncorrectType, l)
+	if err != nil {
 		tools.SendError(c, err, http.StatusBadRequest, l)
+
 		return
 	}
 
-	if rawVersion, err := tools.ParseQueryParamToUint64(c, VersionParam,
-		ErrorVersionNotPresented, ErrorVersionIncorrectType, l); err == nil {
-		*version = uint32(rawVersion)
-	} else {
-		if !errors.Is(err, ErrorVersionNotPresented) {
-			tools.SendError(c, err, http.StatusBadRequest, l)
-			return
-		}
-		version = nil
+	version, err := tools.ParseQueryParamToUint32(c, VersionParam, nil, ErrorVersionIncorrectType, l)
+	if err != nil {
+		tools.SendError(c, err, http.StatusBadRequest, l)
+
+		return
 	}
 
-	content, err := bh.usecase.GetUserBanner(featureId, tagId, version)
+	content, err := bh.usecase.GetUserBanner(*featureID, *tagID, version)
 	if err != nil {
 		if errors.Is(err, br.ErrorBannerNotFound) {
 			tools.SendErrorStatus(c, err, http.StatusNotFound, l)
+
 			return
 		}
 
 		tools.SendError(c, tools.ErrorServerError, http.StatusInternalServerError, l)
 		l.Error(errors.Wrapf(err, "can't get banner for user"))
+
 		return
 	}
 
 	tools.SendStatus(c, http.StatusOK, content, l)
 
-	if err := bh.cache.SetCache(featureId, tagId, version, types.Content(content)); err != nil {
+	if err := bh.cache.SetCache(*featureID, *tagID, version, types.Content(content)); err != nil {
 		l.Error(errors.Wrapf(err,
-			"can't cache banner with feature id %d, tag id %d and version %d", featureId, tagId, version))
+			"can't cache banner with feature id %d, tag id %d and version %d", featureID, tagID, version))
+
 		return
 	}
-	l.Info("banner with feature id %d, tag id %d and version %d was cached", featureId, tagId, version)
+
+	l.Info("banner with feature id %d, tag id %d and version %d was cached", featureID, tagID, version)
 }
 
 // GetAdminBanner
@@ -267,57 +287,39 @@ func (bh *BannerHandlers) GetUserBanner(c *gin.Context) {
 func (bh *BannerHandlers) GetAdminBanner(c *gin.Context) {
 	l := middleware.GetLogger(c)
 
-	var tagId, featureId = new(types.Id), new(types.Id)
-	var offset, limit = new(uint64), new(uint64)
+	tagID, err := tools.ParseQueryParamToTypesID(c, TagIDParam, nil, ErrorTagIDIncorrectType, l)
+	if err != nil {
+		tools.SendError(c, err, http.StatusBadRequest, l)
 
-	if rawTagId, err := tools.ParseQueryParamToUint64(c, TagIdParam,
-		ErrorTagIdNotPresented, ErrorTagIdIncorrectType, l); err == nil {
-		*tagId = (types.Id)(rawTagId)
-	} else {
-		if !errors.Is(err, ErrorTagIdNotPresented) {
-			tools.SendError(c, err, http.StatusBadRequest, l)
-			return
-		}
-		tagId = nil
+		return
 	}
 
-	if rawFeatureId, err := tools.ParseQueryParamToUint64(c, FeatureIdParam,
-		ErrorFeatureIdNotPresented, ErrorFeatureIdIncorrectType, l); err == nil {
-		*featureId = (types.Id)(rawFeatureId)
-	} else {
-		if !errors.Is(err, ErrorFeatureIdNotPresented) {
-			tools.SendError(c, err, http.StatusBadRequest, l)
-			return
-		}
-		featureId = nil
+	featureID, err := tools.ParseQueryParamToTypesID(c, FeatureIDParam, nil, ErrorFeatureIDIncorrectType, l)
+	if err != nil {
+		tools.SendError(c, err, http.StatusBadRequest, l)
+
+		return
 	}
 
-	if rawLimit, err := tools.ParseQueryParamToUint64(c, limitParam,
-		ErrorLimitNotPresented, ErrorLimitIncorrectType, l); err == nil {
-		*limit = rawLimit
-	} else {
-		if !errors.Is(err, ErrorLimitNotPresented) {
-			tools.SendError(c, err, http.StatusBadRequest, l)
-			return
-		}
-		limit = nil
+	limit, err := tools.ParseQueryParamToUint64(c, limitParam, nil, ErrorLimitIncorrectType, l)
+	if err != nil {
+		tools.SendError(c, err, http.StatusBadRequest, l)
+
+		return
 	}
 
-	if rawOffset, err := tools.ParseQueryParamToUint64(c, offsetParam,
-		ErrorOffsetNotPresented, ErrorOffsetIncorrectType, l); err == nil {
-		*offset = rawOffset
-	} else {
-		if !errors.Is(err, ErrorOffsetNotPresented) {
-			tools.SendError(c, err, http.StatusBadRequest, l)
-			return
-		}
-		offset = nil
+	offset, err := tools.ParseQueryParamToUint64(c, offsetParam, nil, ErrorOffsetIncorrectType, l)
+	if err != nil {
+		tools.SendError(c, err, http.StatusBadRequest, l)
+
+		return
 	}
 
-	banners, err := bh.usecase.GetAdminBanners(featureId, tagId, offset, limit)
+	banners, err := bh.usecase.GetAdminBanners(featureID, tagID, offset, limit)
 	if err != nil {
 		tools.SendError(c, tools.ErrorServerError, http.StatusInternalServerError, l)
 		l.Error(errors.Wrapf(err, "can't get banners for admin"))
+
 		return
 	}
 
@@ -346,43 +348,36 @@ func (bh *BannerHandlers) GetAdminBanner(c *gin.Context) {
 func (bh *BannerHandlers) DeleteFilterBanner(c *gin.Context) {
 	l := middleware.GetLogger(c)
 
-	var tagId, featureId = new(types.Id), new(types.Id)
+	tagID, err := tools.ParseQueryParamToTypesID(c, TagIDParam, nil, ErrorTagIDIncorrectType, l)
+	if err != nil {
+		tools.SendError(c, err, http.StatusBadRequest, l)
 
-	if rawTagId, err := tools.ParseQueryParamToUint64(c, TagIdParam,
-		ErrorTagIdNotPresented, ErrorTagIdIncorrectType, l); err == nil {
-		*tagId = (types.Id)(rawTagId)
-	} else {
-		if !errors.Is(err, ErrorTagIdNotPresented) {
-			tools.SendError(c, err, http.StatusBadRequest, l)
-			return
-		}
-		tagId = nil
-	}
-
-	if rawFeatureId, err := tools.ParseQueryParamToUint64(c, FeatureIdParam,
-		ErrorFeatureIdNotPresented, ErrorFeatureIdIncorrectType, l); err == nil {
-		*featureId = (types.Id)(rawFeatureId)
-	} else {
-		if !errors.Is(err, ErrorFeatureIdNotPresented) {
-			tools.SendError(c, err, http.StatusBadRequest, l)
-			return
-		}
-		featureId = nil
-	}
-
-	if featureId == nil && tagId == nil {
-		tools.SendError(c, ErrorParamsNotPresented, http.StatusBadRequest, l)
 		return
 	}
 
-	err := bh.usecase.DeleteFilteredBanner(featureId, tagId)
+	featureID, err := tools.ParseQueryParamToTypesID(c, FeatureIDParam, nil, ErrorFeatureIDIncorrectType, l)
 	if err != nil {
+		tools.SendError(c, err, http.StatusBadRequest, l)
+
+		return
+	}
+
+	if featureID == nil && tagID == nil {
+		tools.SendError(c, ErrorParamsNotPresented, http.StatusBadRequest, l)
+
+		return
+	}
+
+	if err := bh.usecase.DeleteFilteredBanner(featureID, tagID); err != nil {
 		if errors.Is(err, br.ErrorBannerNotFound) {
 			tools.SendErrorStatus(c, err, http.StatusNotFound, l)
+
 			return
 		}
+
 		tools.SendError(c, tools.ErrorServerError, http.StatusInternalServerError, l)
 		l.Error(errors.Wrapf(err, "can't delete filtered banners"))
+
 		return
 	}
 

@@ -29,13 +29,13 @@ export default function () {
 
     const randomBanner = randomItem(banners);
 
-    const tagId = randomItem(randomBanner.tag_ids);
+    const tagID = randomItem(randomBanner.tag_ids);
     
     const limit = randomIntBetween(0, 100);
     const offset = randomIntBetween(0, 100);
 
     // define URL and request body
-    const url = `http://localhost:8080/api/v1/banner?feature_id=${randomBanner.feature_id}&tag_id=${tagId}&limit=${limit}&offset=${offset}`;
+    const url = `http://localhost:8080/api/v1/banner?feature_id=${randomBanner.feature_id}&tag_id=${tagID}&limit=${limit}&offset=${offset}`;
     const params = {
         headers: {
             'token': token,

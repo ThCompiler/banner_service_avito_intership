@@ -2,13 +2,12 @@ package tools
 
 import (
 	"bannersrv/pkg/logger"
+
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
 )
 
-var (
-	ErrorServerError = errors.New("some server error, try again later")
-)
+var ErrorServerError = errors.New("some server error, try again later")
 
 type Error struct {
 	Error string `json:"error,omitempty"`

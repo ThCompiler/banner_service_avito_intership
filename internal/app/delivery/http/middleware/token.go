@@ -3,8 +3,9 @@ package middleware
 import (
 	"bannersrv/internal/app/delivery/http/tools"
 	"bannersrv/internal/pkg/types"
-	"github.com/gin-gonic/gin"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
 )
 
 const (
@@ -22,6 +23,7 @@ func RequestToken(c *gin.Context) {
 	if token == "" {
 		l.Warn("token doesn't found in header of request")
 		tools.SendStatus(c, http.StatusUnauthorized, nil, l)
+
 		return
 	}
 
@@ -33,7 +35,11 @@ func RequestToken(c *gin.Context) {
 
 func GetToken(c *gin.Context) string {
 	if token, ok := c.Get(string(TokenField)); ok {
-		return token.(string)
+		if tk, ok := token.(string); ok {
+			return tk
+		}
+
+		return ""
 	}
 
 	return ""

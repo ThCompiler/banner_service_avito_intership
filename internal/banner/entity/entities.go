@@ -12,9 +12,9 @@ type Content struct {
 }
 
 type Banner struct {
-	Id        types.Id
-	FeatureId types.Id
-	TagIds    []types.Id
+	ID        types.ID
+	FeatureID types.ID
+	TagIDs    []types.ID
 	IsActive  bool
 	CreatedAt time.Time
 	UpdatedAt time.Time
@@ -22,14 +22,14 @@ type Banner struct {
 }
 
 type BannerUpdate struct {
-	Id        types.Id
+	ID        types.ID
 	Content   *types.NullableObject[types.Content]
-	FeatureId *types.NullableObject[types.Id]
-	TagIds    *types.NullableObject[[]types.Id]
+	FeatureID *types.NullableObject[types.ID]
+	TagIDs    *types.NullableObject[[]types.ID]
 	IsActive  *types.NullableObject[bool]
 }
 
 type BannerInfo struct {
-	FeatureId *types.NullableObject[types.Id]
-	TagId     *types.NullableObject[types.Id]
+	FeatureID *types.NullableObject[types.ID]
+	TagID     *types.NullableObject[types.ID]
 }

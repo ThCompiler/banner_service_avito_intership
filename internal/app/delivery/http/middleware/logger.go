@@ -1,13 +1,12 @@
 package middleware
 
 import (
+	"bannersrv/internal/pkg/types"
+	"bannersrv/pkg/logger"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-
-	"bannersrv/internal/pkg/types"
-	"bannersrv/pkg/logger"
 )
 
 const DataFormat = "2006/01/02 - 15:04:05"
@@ -73,7 +72,11 @@ func RequestLogger(l logger.Interface) gin.HandlerFunc {
 
 func GetLogger(c *gin.Context) logger.Interface {
 	if lg, ok := c.Get(string(LoggerField)); ok {
-		return lg.(logger.Interface)
+		if l, ok := lg.(logger.Interface); ok {
+			return l
+		}
+
+		return logger.DefaultLogger
 	}
 
 	return logger.DefaultLogger

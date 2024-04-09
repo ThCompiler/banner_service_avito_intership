@@ -5,6 +5,7 @@ import (
 	"bannersrv/internal/pkg/evjson"
 	"bannersrv/internal/pkg/types"
 	"encoding/json"
+
 	"github.com/miladibra10/vjson"
 )
 
@@ -14,9 +15,9 @@ type CreateBanner struct {
 	// Флаг активности баннера
 	IsActive bool `json:"is_active" swaggertype:"boolean"`
 	// Идентификатор фичи
-	FeatureId types.Id `json:"feature_id" swaggertype:"integer" format:"uint64"`
+	FeatureID types.ID `json:"feature_id" swaggertype:"integer" format:"uint64"`
 	// Идентификаторы тегов
-	TagsIds []types.Id `json:"tag_ids"`
+	TagsIDs []types.ID `json:"tag_ids"`
 }
 
 func ValidateCreateBanner(data []byte) error {
@@ -26,6 +27,7 @@ func ValidateCreateBanner(data []byte) error {
 		vjson.Integer("feature_id").Positive().Required(),
 		vjson.Array("tag_ids", vjson.Integer("id").Positive()).Required(),
 	)
+
 	return schema.ValidateBytes(data)
 }
 
@@ -35,9 +37,9 @@ type UpdateBanner struct {
 	// Флаг активности баннера
 	IsActive *bool `json:"is_active,omitempty" swaggertype:"boolean"`
 	// Идентификатор фичи
-	FeatureId *types.Id `json:"feature_id,omitempty" swaggertype:"integer" format:"uint64"`
+	FeatureID *types.ID `json:"feature_id,omitempty" swaggertype:"integer" format:"uint64"`
 	// Идентификаторы тегов
-	TagsIds []types.Id `json:"tag_ids,omitempty"`
+	TagsIDs []types.ID `json:"tag_ids,omitempty"`
 }
 
 func ValidateUpdateBanner(data []byte) error {
@@ -47,6 +49,7 @@ func ValidateUpdateBanner(data []byte) error {
 		vjson.Integer("feature_id").Positive(),
 		vjson.Array("tag_ids", vjson.Integer("id").Positive()),
 	)
+
 	return schema.ValidateBytes(data)
 }
 
@@ -54,10 +57,10 @@ func (ub *UpdateBanner) ToModel() *models.BannerUpdate {
 	return &models.BannerUpdate{
 		Content:   types.ObjectFromPointer(ub.Content),
 		IsActive:  types.ObjectFromPointer(ub.IsActive),
-		FeatureId: types.ObjectFromPointer(ub.FeatureId),
-		TagIds: &types.NullableObject[[]types.Id]{
-			IsNull: len(ub.TagsIds) == 0,
-			Value:  ub.TagsIds,
+		FeatureID: types.ObjectFromPointer(ub.FeatureID),
+		TagIDs: &types.NullableObject[[]types.ID]{
+			IsNull: len(ub.TagsIDs) == 0,
+			Value:  ub.TagsIDs,
 		},
 	}
 }

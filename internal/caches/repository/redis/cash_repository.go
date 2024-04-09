@@ -4,9 +4,10 @@ import (
 	"bannersrv/internal/caches/repository"
 	"bannersrv/internal/pkg/types"
 	"context"
+	"time"
+
 	"github.com/pkg/errors"
 	"github.com/redis/go-redis/v9"
-	"time"
 )
 
 type CashRedis struct {
@@ -23,6 +24,7 @@ func (cr *CashRedis) SetCache(key string, content types.Content, ttl time.Durati
 		return errors.Wrapf(err,
 			"error when try save in cache with key: %s", key)
 	}
+
 	return nil
 }
 

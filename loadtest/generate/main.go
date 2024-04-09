@@ -1,23 +1,25 @@
 package main
 
 import (
+	"encoding/json"
+	"flag"
+	"log"
+	"os"
+
 	"bannersrv/internal/app/config"
 	bp "bannersrv/internal/banner/repository/postgres"
 	"bannersrv/internal/pkg/types"
 	"bannersrv/pkg/logger"
-	"encoding/json"
-	"flag"
+
 	"github.com/go-co-op/gocron/v2"
 	"github.com/jmoiron/sqlx"
 	"github.com/tidwall/randjson"
-	"log"
-	"os"
 )
 
 type CorrectPair struct {
-	BannerId  types.Id   `json:"banner_id"`
-	FeatureId types.Id   `json:"feature_id"`
-	TagIds    []types.Id `json:"tag_ids"`
+	BannerID  types.ID   `json:"banner_id"`
+	FeatureID types.ID   `json:"feature_id"`
+	TagIDs    []types.ID `json:"tag_ids"`
 }
 
 func main() {
@@ -58,15 +60,15 @@ func main() {
 		log.Fatalf("[initialize BannerRepository error: %s", err)
 	}
 
-	featureIds := make([]types.Id, featuresCount)
-	tagsIds := make([]types.Id, tagsCount)
+	featureIDs := make([]types.ID, featuresCount)
+	tagsIDs := make([]types.ID, tagsCount)
 
 	for i := uint64(0); i < featuresCount; i++ {
-		featureIds[i] = types.Id(i + 1)
+		featureIDs[i] = types.ID(i + 1)
 	}
 
 	for i := uint64(0); i < tagsCount; i++ {
-		tagsIds[i] = types.Id(i + 1)
+		tagsIDs[i] = types.ID(i + 1)
 	}
 
 	countTagsInBanner := tagsCount / (countBanners / featuresCount)
@@ -75,24 +77,24 @@ func main() {
 
 	for i := uint64(0); i < featuresCount; i++ {
 		for j := uint64(0); j < tagsCount; j += countTagsInBanner {
-			tags := tagsIds[j:min(j+countTagsInBanner, tagsCount)]
-			featureId := featureIds[i]
+			tags := tagsIDs[j:min(j+countTagsInBanner, tagsCount)]
+			featureID := featureIDs[i]
 			banner := randjson.Make(12, nil)
 
-			createdId, err := bannerRepository.CreateBanner(featureId, tags, types.Content(banner), true)
+			createdID, err := bannerRepository.CreateBanner(featureID, tags, types.Content(banner), true)
 			if err != nil {
 				log.Fatal(err)
 			}
 
 			result = append(result, CorrectPair{
-				BannerId:  createdId,
-				FeatureId: featureId,
-				TagIds:    tags,
+				BannerID:  createdID,
+				FeatureID: featureID,
+				TagIDs:    tags,
 			})
 		}
 	}
 
-	file, err := os.OpenFile("./info.json", os.O_WRONLY|os.O_CREATE, 0777)
+	file, err := os.OpenFile("./info.json", os.O_WRONLY|os.O_CREATE, 0o777)
 	if err != nil {
 		log.Fatal(err)
 	}

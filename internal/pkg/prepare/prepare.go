@@ -10,15 +10,20 @@ import (
 
 const logName = "log"
 
-func OpenLogDir(dir string) (*os.File, error) {
-	dir = filepath.Clean(filepath.Dir(dir))
+const (
+	DirPermissions     = 0o755
+	LogFilePermissions = 0o644
+)
 
-	if _, err := os.Stat(dir); err != nil {
+func OpenLogDir(dir string) (*os.File, error) {
+	logDir := filepath.Clean(filepath.Dir(dir))
+
+	if _, err := os.Stat(logDir); err != nil {
 		if !os.IsNotExist(err) {
 			return nil, errors.Wrap(err, "error when try check log dir: ")
 		}
 
-		if err = os.MkdirAll(dir, 0o755); err != nil {
+		if err = os.MkdirAll(logDir, DirPermissions); err != nil {
 			return nil, errors.Wrap(err, "error when try add log dir: ")
 		}
 	}
@@ -27,9 +32,9 @@ func OpenLogDir(dir string) (*os.File, error) {
 	timeString := t.Format(time.RFC3339)
 	fileName := timeString + "-" + logName + ".log"
 
-	file, err := os.OpenFile(filepath.Join(dir, fileName),
+	file, err := os.OpenFile(filepath.Join(logDir, fileName),
 		os.O_CREATE|os.O_APPEND|os.O_WRONLY,
-		0o644,
+		LogFilePermissions,
 	)
 	if err != nil {
 		return nil, errors.Wrap(err, "error when try open log file: ")

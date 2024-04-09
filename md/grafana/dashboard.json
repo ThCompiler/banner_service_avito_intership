@@ -81,7 +81,7 @@
           "instant": false,
           "legendFormat": "__auto",
           "range": true,
-          "refId": "A",
+          "refID": "A",
           "useBackend": false
         }
       ],
@@ -148,7 +148,7 @@
           "instant": false,
           "legendFormat": "__auto",
           "range": true,
-          "refId": "A",
+          "refID": "A",
           "useBackend": false
         }
       ],
@@ -250,7 +250,7 @@
           "instant": false,
           "legendFormat": "__auto",
           "range": true,
-          "refId": "A",
+          "refID": "A",
           "useBackend": false
         },
         {
@@ -267,7 +267,7 @@
           "instant": false,
           "legendFormat": "__auto",
           "range": true,
-          "refId": "B",
+          "refID": "B",
           "useBackend": false
         },
         {
@@ -284,7 +284,7 @@
           "instant": false,
           "legendFormat": "__auto",
           "range": true,
-          "refId": "C",
+          "refID": "C",
           "useBackend": false
         },
         {
@@ -301,7 +301,7 @@
           "instant": false,
           "legendFormat": "__auto",
           "range": true,
-          "refId": "D",
+          "refID": "D",
           "useBackend": false
         }
       ],
@@ -337,7 +337,7 @@
         "query": {
           "qryType": 1,
           "query": "label_values(main_durations_bucket,path)",
-          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+          "refID": "PrometheusVariableQueryEditor-VariableQuery"
         },
         "refresh": 1,
         "regex": "",

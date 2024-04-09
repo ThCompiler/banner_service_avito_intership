@@ -1,12 +1,11 @@
 package middleware
 
 import (
+	"bannersrv/pkg/logger"
 	"net/http"
 	"runtime/debug"
 
 	"github.com/gin-gonic/gin"
-
-	"bannersrv/pkg/logger"
 )
 
 // CheckPanic обрабатывает панические ситуации, которые могли возникнуть при обработке запросов

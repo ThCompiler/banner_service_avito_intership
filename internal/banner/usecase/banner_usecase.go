@@ -18,30 +18,35 @@ type BannerUsecase struct {
 	rep banner.Repository
 }
 
-func NewBannerUsecase(banner banner.Repository) *BannerUsecase {
+func NewBannerUsecase(bnr banner.Repository) *BannerUsecase {
 	return &BannerUsecase{
-		rep: banner,
+		rep: bnr,
 	}
 }
 
-func (bu *BannerUsecase) CreateBanner(tagIds []types.Id, featureId types.Id,
-	content json.RawMessage, isActive bool) (types.Id, error) {
-	return bu.rep.CreateBanner(featureId, tagIds, types.Content(content), isActive)
+func (bu *BannerUsecase) CreateBanner(tagIDs []types.ID, featureID types.ID,
+	content json.RawMessage, isActive bool,
+) (types.ID, error) {
+	return bu.rep.CreateBanner(featureID, tagIDs, types.Content(content), isActive)
 }
 
-func (bu *BannerUsecase) DeleteBanner(id types.Id) error {
+func (bu *BannerUsecase) DeleteBanner(id types.ID) error {
 	_, err := bu.rep.DeleteBanner(id)
+
 	return err
 }
 
-func (bu *BannerUsecase) UpdateBanner(id types.Id, banner *models.BannerUpdate) error {
-	_, err := bu.rep.UpdateBanner(banner.ToBannerUpdateEntity(id))
+func (bu *BannerUsecase) UpdateBanner(id types.ID, bnr *models.BannerUpdate) error {
+	_, err := bu.rep.UpdateBanner(bnr.ToBannerUpdateEntity(id))
+
 	return err
 }
 
-func (bu *BannerUsecase) GetAdminBanners(featureId *types.Id, tagId *types.Id,
-	offset *uint64, limit *uint64) ([]models.Banner, error) {
+func (bu *BannerUsecase) GetAdminBanners(featureID, tagID *types.ID,
+	offset, limit *uint64,
+) ([]models.Banner, error) {
 	var entityOffset uint64 = defaultOffset
+
 	var entityLimit uint64 = defaultLimit
 
 	if offset != nil {
@@ -53,8 +58,8 @@ func (bu *BannerUsecase) GetAdminBanners(featureId *types.Id, tagId *types.Id,
 	}
 
 	banners, err := bu.rep.GetBanners(&entity.BannerInfo{
-		FeatureId: types.ObjectFromPointer(featureId),
-		TagId:     types.ObjectFromPointer(tagId),
+		FeatureID: types.ObjectFromPointer(featureID),
+		TagID:     types.ObjectFromPointer(tagID),
 	}, entityOffset, entityLimit)
 	if err != nil {
 		return nil, err
@@ -65,17 +70,18 @@ func (bu *BannerUsecase) GetAdminBanners(featureId *types.Id, tagId *types.Id,
 	}), nil
 }
 
-func (bu *BannerUsecase) GetUserBanner(featureId types.Id, tagId types.Id, version *uint32) (json.RawMessage, error) {
-	content, err := bu.rep.GetBanner(featureId, tagId, *types.ObjectFromPointer(version))
+func (bu *BannerUsecase) GetUserBanner(featureID, tagID types.ID, version *uint32) (json.RawMessage, error) {
+	content, err := bu.rep.GetBanner(featureID, tagID, *types.ObjectFromPointer(version))
 	if err != nil {
 		return nil, err
 	}
+
 	return json.RawMessage(content), nil
 }
 
-func (bu *BannerUsecase) DeleteFilteredBanner(featureId *types.Id, tagId *types.Id) error {
+func (bu *BannerUsecase) DeleteFilteredBanner(featureID, tagID *types.ID) error {
 	return bu.rep.DeleteFilteredBanner(&entity.BannerInfo{
-		FeatureId: types.ObjectFromPointer(featureId),
-		TagId:     types.ObjectFromPointer(tagId),
+		FeatureID: types.ObjectFromPointer(featureID),
+		TagID:     types.ObjectFromPointer(tagID),
 	})
 }

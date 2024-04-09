@@ -8,9 +8,9 @@ import (
 	"time"
 )
 
-type BannerId struct {
+type BannerID struct {
 	// Идентификатор созданного баннера
-	BannerId types.Id `json:"banner_id" swaggertype:"integer" format:"uint64"`
+	BannerID types.ID `json:"banner_id" swaggertype:"integer" format:"uint64"`
 }
 
 type Content struct {
@@ -24,13 +24,13 @@ type Content struct {
 
 type Banner struct {
 	// Идентификатор баннера
-	Id types.Id `json:"banner_id" swaggertype:"integer" format:"uint64"`
+	ID types.ID `json:"banner_id" swaggertype:"integer" format:"uint64"`
 	// Последние три версии баннера
 	Versions []Content `json:"versions"`
 	// Идентификатор фичи
-	FeatureId types.Id `json:"feature_id" swaggertype:"integer"`
+	FeatureID types.ID `json:"feature_id" swaggertype:"integer"`
 	// Идентификаторы тэгов
-	TagIds []types.Id `json:"tag_ids"`
+	TagIDs []types.ID `json:"tag_ids"`
 	// Флаг активности баннера
 	IsActive bool `json:"is_active" swaggertype:"boolean" format:"uint64"`
 	// Дата создания баннера
@@ -49,12 +49,12 @@ func FromModelContent(banner *models.Content) *Content {
 
 func FromModelBanner(banner *models.Banner) *Banner {
 	return &Banner{
-		Id: banner.Id,
+		ID: banner.ID,
 		Versions: slices.Map(banner.Versions, func(content *models.Content) Content {
 			return *FromModelContent(content)
 		}),
-		FeatureId: banner.FeatureId,
-		TagIds:    banner.TagIds,
+		FeatureID: banner.FeatureID,
+		TagIDs:    banner.TagIDs,
 		IsActive:  banner.IsActive,
 		CreatedAt: banner.CreatedAt,
 		UpdatedAt: banner.UpdatedAt,

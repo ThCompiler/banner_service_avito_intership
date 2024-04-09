@@ -21,18 +21,20 @@ func NewCacheManager(cache caches.Repository) *CacheManager {
 	}
 }
 
-func (cm *CacheManager) HaveCache(featureId types.Id, tagId types.Id, version *uint32) (types.Content, error) {
-	key := fmt.Sprintf("%d-%d", featureId, tagId)
+func (cm *CacheManager) HaveCache(featureID, tagID types.ID, version *uint32) (types.Content, error) {
+	key := fmt.Sprintf("%d-%d", featureID, tagID)
 	if version != nil {
 		key = fmt.Sprintf("%s-%d", key, *version)
 	}
+
 	return cm.rep.HaveCache(key)
 }
 
-func (cm *CacheManager) SetCache(featureId types.Id, tagId types.Id, version *uint32, content types.Content) error {
-	key := fmt.Sprintf("%d-%d", featureId, tagId)
+func (cm *CacheManager) SetCache(featureID, tagID types.ID, version *uint32, content types.Content) error {
+	key := fmt.Sprintf("%d-%d", featureID, tagID)
 	if version != nil {
 		key = fmt.Sprintf("%s-%d", key, *version)
 	}
+
 	return cm.rep.SetCache(key, content, cacheExpiredTime)
 }

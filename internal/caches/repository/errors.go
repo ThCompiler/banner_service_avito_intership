@@ -2,6 +2,4 @@ package repository
 
 import "github.com/pkg/errors"
 
-var (
-	ErrorCacheMiss = errors.New("cache miss")
-)
+var ErrorCacheMiss = errors.New("cache miss")

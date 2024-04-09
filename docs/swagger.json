@@ -118,7 +118,7 @@
                     "201": {
                         "description": "Баннер успешно добавлен в систему",
                         "schema": {
-                            "$ref": "#/definitions/response.BannerId"
+                            "$ref": "#/definitions/response.BannerID"
                         }
                     },
                     "400": {
@@ -366,7 +366,7 @@
                         "UserToken": []
                     }
                 ],
-                "description": "Возвращает баннер на основании тэга группы пользователей, фичи и версии, если версия не указана, то вернётся последняя.",
+                "description": "|",
                 "produces": [
                     "application/json"
                 ],
@@ -528,7 +528,7 @@
                 }
             }
         },
-        "response.BannerId": {
+        "response.BannerID": {
             "type": "object",
             "properties": {
                 "banner_id": {

@@ -1,8 +1,9 @@
 package prometheus
 
 import (
-	"github.com/prometheus/client_golang/prometheus"
 	"time"
+
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 type MetricsManager struct {
@@ -37,30 +38,35 @@ func NewPrometheusMetrics(serviceName string) *MetricsManager {
 
 	return metrics
 }
+
 func (mm *MetricsManager) SetupMonitoring() error {
 	if err := prometheus.Register(mm.HitsErrors); err != nil {
 		return err
 	}
+
 	if err := prometheus.Register(mm.HitsSuccess); err != nil {
 		return err
 	}
+
 	if err := prometheus.Register(mm.ExecutionTime); err != nil {
 		return err
 	}
-	if err := prometheus.Register(mm.TotalHits); err != nil {
-		return err
-	}
-	return nil
+
+	return prometheus.Register(mm.TotalHits)
 }
+
 func (mm *MetricsManager) GetSuccessHits() *prometheus.CounterVec {
 	return mm.HitsSuccess
 }
+
 func (mm *MetricsManager) GetErrorHits() *prometheus.CounterVec {
 	return mm.HitsErrors
 }
+
 func (mm *MetricsManager) GetRequestCounter() prometheus.Counter {
 	return mm.TotalHits
 }
+
 func (mm *MetricsManager) GetExecution() *prometheus.HistogramVec {
 	return mm.ExecutionTime
 }

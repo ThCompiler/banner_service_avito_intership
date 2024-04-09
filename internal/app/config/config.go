@@ -1,8 +1,9 @@
 package config
 
 import (
-	"bannersrv/pkg/logger"
 	"fmt"
+
+	"bannersrv/pkg/logger"
 
 	"github.com/ilyakaznacheev/cleanenv"
 )
@@ -36,8 +37,8 @@ type (
 	PG struct {
 		URL                string `yaml:"url"`
 		MaxConnections     int    `yaml:"max_connections" default:"5"`
-		MaxIdleConnections int    `yaml:"max_idle_connections" default:"2"`
-		TTLIdleConnections uint64 `yaml:"ttl_idle_connections" default:"10"`
+		MaxIDleConnections int    `yaml:"max_idle_connections" default:"2"`
+		TTLIDleConnections uint64 `yaml:"ttl_idle_connections" default:"10"`
 	}
 
 	Redis struct {

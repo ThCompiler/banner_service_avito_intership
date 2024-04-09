@@ -4,11 +4,11 @@ import (
 	"bannersrv/internal/app/config"
 	"bannersrv/internal/app/delivery/http/middleware"
 	"bannersrv/internal/pkg/metrics"
+	"bannersrv/pkg/logger"
+
 	"github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-
-	"bannersrv/pkg/logger"
 )
 
 const version = "v1"
@@ -23,7 +23,8 @@ type Route struct {
 type Routes []Route
 
 func NewRouter(root string, routes Routes, mode config.Mode,
-	l logger.Interface, metricsManager metrics.Manager) (*gin.Engine, error) {
+	l logger.Interface, metricsManager metrics.Manager,
+) (*gin.Engine, error) {
 	if mode == config.Release || mode == config.ReleaseProf {
 		gin.SetMode(gin.ReleaseMode)
 	}
@@ -35,6 +36,7 @@ func NewRouter(root string, routes Routes, mode config.Mode,
 	}
 
 	promHandler := promhttp.Handler()
+
 	router.GET("/metrics", func(c *gin.Context) {
 		promHandler.ServeHTTP(c.Writer, c.Request)
 	})

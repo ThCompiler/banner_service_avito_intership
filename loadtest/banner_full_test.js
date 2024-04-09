@@ -29,7 +29,7 @@ export default function () {
 
     const randomBanner = randomItem(banners);
 
-    const tagId = randomItem(randomBanner.tag_ids);
+    const tagID = randomItem(randomBanner.tag_ids);
     
     const limit = randomIntBetween(0, 100);
     const offset = randomIntBetween(0, 100);
@@ -37,9 +37,9 @@ export default function () {
     const whatUse = randomIntBetween(0, 2);
 
     // define URL and request body
-    let url = `http://localhost:8080/api/v1/banner?feature_id=${randomBanner.feature_id}&tag_id=${tagId}&limit=${limit}&offset=${offset}`;
+    let url = `http://localhost:8080/api/v1/banner?feature_id=${randomBanner.feature_id}&tag_id=${tagID}&limit=${limit}&offset=${offset}`;
     if (whatUse === 0) {
-        url = `http://localhost:8080/api/v1/banner?tag_id=${tagId}&limit=${limit}&offset=${offset}`;
+        url = `http://localhost:8080/api/v1/banner?tag_id=${tagID}&limit=${limit}&offset=${offset}`;
     }
     if (whatUse === 1) {
         url = `http://localhost:8080/api/v1/banner?feature_id=${randomBanner.feature_id}&limit=${limit}&offset=${offset}`;

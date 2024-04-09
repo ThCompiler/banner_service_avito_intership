@@ -1,38 +1,46 @@
 package app
 
 import (
-	ah "bannersrv/external/auth/delivery/http/v1/handlers"
 	"bannersrv/internal/app/config"
 	"bannersrv/internal/app/delivery/http/middleware"
-	v1 "bannersrv/internal/app/delivery/http/v1"
-	bh "bannersrv/internal/banner/delivery/http/v1/handlers"
 	"bannersrv/internal/caches"
-	cm "bannersrv/internal/caches/delivery/middleware"
+	"bannersrv/internal/pkg/prepare"
 	"bannersrv/internal/token"
-	tm "bannersrv/internal/token/delivery/middleware"
-	"github.com/gin-gonic/gin"
+	"bannersrv/pkg/logger"
 	"io"
 	"log"
 	"net/http"
 	"os"
 
-	swaggerFiles "github.com/swaggo/files"
-	ginSwagger "github.com/swaggo/gin-swagger"
+	ah "bannersrv/external/auth/delivery/http/v1/handlers"
+
+	v1 "bannersrv/internal/app/delivery/http/v1"
+	bh "bannersrv/internal/banner/delivery/http/v1/handlers"
+
+	cm "bannersrv/internal/caches/delivery/middleware"
+
+	tm "bannersrv/internal/token/delivery/middleware"
+
+	"github.com/gin-gonic/gin"
+
+	sf "github.com/swaggo/files"
+	gs "github.com/swaggo/gin-swagger"
 
 	_ "bannersrv/docs"
-	"bannersrv/internal/pkg/prepare"
-	"bannersrv/pkg/logger"
 )
 
 func prepareLogger(cfg config.LoggerInfo) (*logger.Logger, *os.File) {
 	var logOut io.Writer
+
 	var logFile *os.File
+
 	var err error
 
 	if cfg.Directory != "" {
 		logFile, err = prepare.OpenLogDir(cfg.Directory)
 		if err != nil {
-			log.Fatalf("[App] Init - create logger error: %s", err)
+			log.Fatalf("[App] Init - create logger error: %s", err) // nolint: revive // логгер инициализируется,
+			// ошибку открытия лог файла больше нечем логировать
 		}
 
 		logOut = logFile
@@ -56,13 +64,14 @@ func prepareLogger(cfg config.LoggerInfo) (*logger.Logger, *os.File) {
 }
 
 func prepareRoutes(bannerHandlers *bh.BannerHandlers, cache caches.Manager,
-	tokenService token.Service, authHandlers *ah.AuthHandlers) v1.Routes {
+	tokenService token.Service, authHandlers *ah.AuthHandlers,
+) v1.Routes {
 	return v1.Routes{
-		//"Index"
+		// "Swagger"
 		v1.Route{
 			Method:      http.MethodGet,
 			Pattern:     "/swagger/*any",
-			HandlerFunc: ginSwagger.WrapHandler(swaggerFiles.Handler),
+			HandlerFunc: gs.WrapHandler(sf.Handler),
 		},
 
 		// "CreateBanner"
@@ -84,7 +93,7 @@ func prepareRoutes(bannerHandlers *bh.BannerHandlers, cache caches.Manager,
 		// "DeleteBanner"
 		v1.Route{
 			Method:      http.MethodDelete,
-			Pattern:     "/banner/:" + bh.BannerIdField,
+			Pattern:     "/banner/:" + bh.BannerIDField,
 			HandlerFunc: bannerHandlers.DeleteBanner,
 			Middlewares: []gin.HandlerFunc{middleware.RequestToken, tm.WithAdminToken(tokenService)},
 		},
@@ -92,7 +101,7 @@ func prepareRoutes(bannerHandlers *bh.BannerHandlers, cache caches.Manager,
 		// "UpdateBanner"
 		v1.Route{
 			Method:      http.MethodPatch,
-			Pattern:     "/banner/:" + bh.BannerIdField,
+			Pattern:     "/banner/:" + bh.BannerIDField,
 			HandlerFunc: bannerHandlers.UpdateBanner,
 			Middlewares: []gin.HandlerFunc{middleware.RequestToken, tm.WithAdminToken(tokenService)},
 		},
@@ -102,8 +111,10 @@ func prepareRoutes(bannerHandlers *bh.BannerHandlers, cache caches.Manager,
 			Method:      http.MethodGet,
 			Pattern:     "/user_banner",
 			HandlerFunc: bannerHandlers.GetUserBanner,
-			Middlewares: []gin.HandlerFunc{middleware.RequestToken,
-				tm.WithUserToken(tokenService), cm.CacheBanner(cache)},
+			Middlewares: []gin.HandlerFunc{
+				middleware.RequestToken,
+				tm.WithUserToken(tokenService), cm.CacheBanner(cache),
+			},
 		},
 
 		// "DeleteFilterBanner"

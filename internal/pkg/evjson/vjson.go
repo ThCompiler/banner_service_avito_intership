@@ -7,7 +7,7 @@ import (
 
 const jsonError = "could not parse json input."
 
-var ErrorInvalidJson = errors.New(jsonError)
+var ErrorInvalidJSON = errors.New(jsonError)
 
 type Schema struct {
 	vjson.Schema
@@ -20,19 +20,23 @@ func NewSchema(fields ...vjson.Field) Schema {
 func (s *Schema) ValidateBytes(input []byte) error {
 	if err := s.Schema.ValidateBytes(input); err != nil {
 		if err.Error() == jsonError {
-			return ErrorInvalidJson
+			return ErrorInvalidJSON
 		}
+
 		return err
 	}
+
 	return nil
 }
 
 func (s *Schema) ValidateString(input string) error {
 	if err := s.Schema.ValidateString(input); err != nil {
 		if err.Error() == jsonError {
-			return ErrorInvalidJson
+			return ErrorInvalidJSON
 		}
+
 		return err
 	}
+
 	return nil
 }

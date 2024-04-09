@@ -5,9 +5,10 @@ import (
 	"bannersrv/internal/app/delivery/http/middleware"
 	"bannersrv/internal/app/delivery/http/tools"
 	"bannersrv/internal/token"
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
-	"net/http"
 )
 
 // WithAdminToken проверяет что передан админский токен
@@ -21,11 +22,13 @@ func WithAdminToken(tokenService token.Service) gin.HandlerFunc {
 		if err != nil {
 			tools.SendError(c, tools.ErrorServerError, http.StatusInternalServerError, l)
 			l.Error(errors.Wrapf(err, "try check admin token %s", tok))
+
 			return
 		}
 
 		if !ok {
 			tools.SendStatus(c, http.StatusForbidden, nil, l)
+
 			return
 		}
 
@@ -45,11 +48,13 @@ func WithUserToken(tokenService token.Service) gin.HandlerFunc {
 		if err != nil {
 			tools.SendError(c, tools.ErrorServerError, http.StatusInternalServerError, l)
 			l.Error(errors.Wrapf(err, "try check user token %s", tok))
+
 			return
 		}
 
 		if !ok {
 			tools.SendStatus(c, http.StatusForbidden, nil, l)
+
 			return
 		}
 

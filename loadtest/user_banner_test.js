@@ -29,7 +29,7 @@ export default function () {
 
     const randomBanner = randomItem(banners);
 
-    const tagId = randomItem(randomBanner.tag_ids);
+    const tagID = randomItem(randomBanner.tag_ids);
 
     let use_last_revision = false;
     if (randomIntBetween(0, 100) < 50) {
@@ -37,7 +37,7 @@ export default function () {
     }
 
     // define URL and request body
-    const url = `http://localhost:8080/api/v1/user_banner?feature_id=${randomBanner.feature_id}&tag_id=${tagId}&use_last_revision=${use_last_revision}`;
+    const url = `http://localhost:8080/api/v1/user_banner?feature_id=${randomBanner.feature_id}&tag_id=${tagID}&use_last_revision=${use_last_revision}`;
     const params = {
         headers: {
             'token': token,

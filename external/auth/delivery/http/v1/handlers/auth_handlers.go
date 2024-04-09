@@ -4,8 +4,9 @@ import (
 	"bannersrv/external/auth"
 	"bannersrv/internal/app/delivery/http/middleware"
 	"bannersrv/internal/app/delivery/http/tools"
-	"github.com/gin-gonic/gin"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
 )
 
 type AuthHandlers struct {

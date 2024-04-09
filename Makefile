@@ -1,6 +1,7 @@
 LOG_DIR=./logs
 SWAG_DIRS=./internal/app/delivery/http/v1/,./internal/banner/delivery/http/v1/handlers,./internal/banner/delivery/http/v1/models/request,./internal/banner/delivery/http/v1/models/response,./external/auth/delivery/http/v1/handlers,./internal/app/delivery/http/tools
 include ./config/env/api_test.env
+export $(shell sed 's/=.*//' ./config/env/api_test.env)
 
 # Запуск
 
@@ -76,4 +77,5 @@ run-coverage:
 
 .PHONY: fmt
 fmt:
-	gofumpt -e -w -d -extra .
+	gofumpt -e -w -extra .
+	goimports -e -w .

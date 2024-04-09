@@ -121,7 +121,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Баннер успешно добавлен в систему",
                         "schema": {
-                            "$ref": "#/definitions/response.BannerId"
+                            "$ref": "#/definitions/response.BannerID"
                         }
                     },
                     "400": {
@@ -369,7 +369,7 @@ const docTemplate = `{
                         "UserToken": []
                     }
                 ],
-                "description": "Возвращает баннер на основании тэга группы пользователей, фичи и версии, если версия не указана, то вернётся последняя.",
+                "description": "|",
                 "produces": [
                     "application/json"
                 ],
@@ -531,7 +531,7 @@ const docTemplate = `{
                 }
             }
         },
-        "response.BannerId": {
+        "response.BannerID": {
             "type": "object",
             "properties": {
                 "banner_id": {

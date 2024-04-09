@@ -2,8 +2,9 @@ package usecase
 
 import (
 	"bannersrv/external/auth"
-	"github.com/google/uuid"
 	"strings"
+
+	"github.com/google/uuid"
 )
 
 const (
@@ -17,24 +18,26 @@ func NewAuthUsecase() *AuthUsecase {
 	return &AuthUsecase{}
 }
 
-func (au *AuthUsecase) IsAdminToken(token auth.Token) (bool, error) {
+func (*AuthUsecase) IsAdminToken(token auth.Token) (bool, error) {
 	if strings.HasPrefix(string(token), adminPrefix) {
 		return true, nil
 	}
+
 	return false, nil
 }
 
-func (au *AuthUsecase) IsUserToken(token auth.Token) (bool, error) {
+func (*AuthUsecase) IsUserToken(token auth.Token) (bool, error) {
 	if strings.HasPrefix(string(token), userPrefix) {
 		return true, nil
 	}
+
 	return false, nil
 }
 
-func (au *AuthUsecase) GetUserToken() auth.Token {
+func (*AuthUsecase) GetUserToken() auth.Token {
 	return auth.Token(userPrefix + "-" + uuid.New().String())
 }
 
-func (au *AuthUsecase) GetAdminToken() auth.Token {
+func (*AuthUsecase) GetAdminToken() auth.Token {
 	return auth.Token(adminPrefix + "-" + uuid.New().String())
 }

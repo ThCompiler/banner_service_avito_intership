@@ -4,7 +4,7 @@ import (
 	"database/sql"
 )
 
-type Id uint32
+type ID uint32
 
 type ContextField string
 
@@ -32,6 +32,7 @@ func ObjectFromPointer[T any](object *T) *NullableObject[T] {
 	if object == nil {
 		return NewNullObject[T]()
 	}
+
 	return NewObject(*object)
 }
 
@@ -41,6 +42,7 @@ func (object *NullableObject[T]) ToNullableSQL() *sql.Null[T] {
 			Valid: false,
 		}
 	}
+
 	return &sql.Null[T]{
 		Valid: !object.IsNull,
 		V:     object.Value,

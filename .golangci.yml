@@ -12,12 +12,15 @@ run:
   # List of build tags, all linters use it.
   # Default: [].
   skip-dirs:
-    - version
+    - config
     - cmd
-    - workflow
+    - docs
+    - script
+    - md
+    - loadtest
   modules-download-mode: readonly
   allow-parallel-runners: true
-  go: '1.19'
+  go: '1.22'
 # output configuration option
 output:
   # Format: colored-line-number|line-number|json|tab|checkstyle|code-climate|junit-xml|github-actions
@@ -73,8 +76,6 @@ linters-settings:
             allowStrs: '""'
             allowInts: "0,1,2"
             allowFloats: "0.0,0.,1.0,1.,2.0,2."
-      - name: confusing-naming
-        disabled: true
       - name: line-length-limit
         severity: warning
         disabled: false
@@ -83,9 +84,13 @@ linters-settings:
         disabled: true
       - name: comment-spacings
         disabled: true
-      - name: errorf
+      - name: blank-imports
         disabled: true
-      - name: var-naming
+      - name: cognitive-complexity
+        disabled: true
+      - name: get-return
+        disabled: true
+      - name: redundant-import-alias
         disabled: true
   gci:
     local-prefixes: github.com/ThCompiler/go.beget.api
@@ -122,7 +127,7 @@ linters-settings:
       - unnecessaryBlock
   gofumpt:
     extra-rules: true
-    lang-version: "1.19"
+    lang-version: "1.22.1"
   gomnd:
     settings:
       mnd:
@@ -231,8 +236,9 @@ linters:
     - nolintlint
     - contextcheck
     - gochecknoinits
-    - prealloc
     - gocyclo
     - gocognit
     - funlen
     - cyclop
+    - tagalign
+    - goconst

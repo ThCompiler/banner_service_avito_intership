@@ -1,7 +1,7 @@
 port: 8080
 mode: debug+prof
 postgres:
-  url: "port=5432 user=intern password=fyr8as4da6 dbname=banner_db sslmode=disable"
+  url: "host=localhost port=5432 user=intern password=fyr8as4da6 dbname=banner_db sslmode=disable"
 redis:
   url: "redis://localhost:6379/0"
 logger:

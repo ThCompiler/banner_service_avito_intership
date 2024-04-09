@@ -6,10 +6,11 @@ import (
 )
 
 type Repository interface {
-	CreateBanner(featureId types.Id, tagIds []types.Id, content types.Content, isActive bool) (types.Id, error)
-	DeleteBanner(id types.Id) (types.Id, error)
-	UpdateBanner(banner *entity.BannerUpdate) (types.Id, error)
-	GetBanners(banner *entity.BannerInfo, offset uint64, limit uint64) ([]entity.Banner, error)
-	GetBanner(featureId types.Id, tagId types.Id, version types.NullableObject[uint32]) (types.Content, error)
+	CreateBanner(featureID types.ID, tagIDs []types.ID, content types.Content, isActive bool) (types.ID, error)
+	DeleteBanner(id types.ID) (types.ID, error)
+	UpdateBanner(banner *entity.BannerUpdate) (types.ID, error)
+	GetBanners(banner *entity.BannerInfo, offset, limit uint64) ([]entity.Banner, error)
+	GetBanner(featureID, tagID types.ID, version types.NullableObject[uint32]) (types.Content, error)
 	DeleteFilteredBanner(banner *entity.BannerInfo) error
+	CleanDeletedBanner() error
 }

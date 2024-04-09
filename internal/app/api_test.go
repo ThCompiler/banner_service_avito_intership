@@ -3,6 +3,12 @@
 package app
 
 import (
+	"bannersrv/internal/app/config"
+	"context"
+	"fmt"
+	"net/http"
+	"testing"
+
 	"bannersrv/external/auth"
 	ah "bannersrv/external/auth/delivery/http/v1/handlers"
 	au "bannersrv/external/auth/usecase"
@@ -18,8 +24,7 @@ import (
 	cr "bannersrv/internal/caches/repository/redis"
 	"bannersrv/internal/pkg/types"
 	"bannersrv/pkg/logger"
-	"context"
-	"fmt"
+
 	"github.com/gin-gonic/gin"
 	"github.com/go-co-op/gocron/v2"
 	"github.com/ilyakaznacheev/cleanenv"
@@ -28,8 +33,8 @@ import (
 	"github.com/ozontech/allure-go/pkg/framework/suite"
 	"github.com/redis/go-redis/v9"
 	"github.com/steinfletcher/apitest"
-	"net/http"
-	"testing"
+
+	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 type ConfigTest struct {
@@ -55,10 +60,12 @@ func (as *ApiSuite) BeforeEach(t provider.T) {
 		t.Fatalf("error read test config: %v", err)
 	}
 
+	fmt.Println(cfg.Pg)
+
 	l := &logger.EmptyLogger{}
 
 	t.NewStep("Проверка работы базы данных окружения")
-	as.pgConnection, err = sqlx.Open("postgres", cfg.Pg)
+	as.pgConnection, err = sqlx.Open("pgx", cfg.Pg)
 	if err != nil {
 		t.Fatalf("error create postgres connection: %s", err)
 	}
@@ -106,8 +113,8 @@ func (as *ApiSuite) BeforeEach(t provider.T) {
 
 	t.NewStep("Инициализация роутера")
 	// routes
-	as.router, err = v1.NewRouter("/api", l,
-		prepareRoutes(bannerHandlers, cacheManager, authService, authHandlers), nil)
+	as.router, err = v1.NewRouter("/api", prepareRoutes(bannerHandlers, cacheManager, authService, authHandlers),
+		config.Release, l, nil)
 	if err != nil {
 		t.Fatalf("init router error: %s", err)
 	}
@@ -144,38 +151,38 @@ func (as *ApiSuite) TestGetUserBanner(t provider.T) {
 
 	bannerList := map[string]*entity.Banner{
 		activeBanner: {
-			FeatureId: 1,
-			TagIds:    []types.Id{2, 4, 3},
+			FeatureID: 1,
+			TagIDs:    []types.ID{2, 4, 3},
 			IsActive:  true,
 		},
 		cashedBanner: {
-			FeatureId: 3,
-			TagIds:    []types.Id{5, 1, 2},
+			FeatureID: 3,
+			TagIDs:    []types.ID{5, 1, 2},
 			IsActive:  true,
 		},
 		otherCashedBanner: {
-			FeatureId: 4,
-			TagIds:    []types.Id{5, 1, 2},
+			FeatureID: 4,
+			TagIDs:    []types.ID{5, 1, 2},
 			IsActive:  true,
 		},
 		inactiveBanner: {
-			FeatureId: 2,
-			TagIds:    []types.Id{1, 4, 5},
+			FeatureID: 2,
+			TagIDs:    []types.ID{1, 4, 5},
 			IsActive:  false,
 		},
 	}
 
 	for key, bn := range bannerList {
-		id, err := as.bannerRepository.CreateBanner(bn.FeatureId, bn.TagIds, bannerContentList[key], bn.IsActive)
+		id, err := as.bannerRepository.CreateBanner(bn.FeatureID, bn.TagIDs, bannerContentList[key], bn.IsActive)
 		t.Require().NoError(err)
-		bn.Id = id
+		bn.ID = id
 	}
 
 	t.Run("Успешное получение активного баннера", func(t provider.T) {
 		apitest.New().
 			Handler(as.router).
 			Get(path).
-			Query(bh.FeatureIdParam, "1").Query(bh.TagIdParam, "2").
+			Query(bh.FeatureIDParam, "1").Query(bh.TagIDParam, "2").
 			Header(middleware.TokenHeaderField, string(as.authService.GetUserToken())).
 			Expect(t).
 			Body(string(bannerContentList[activeBanner])).
@@ -187,7 +194,7 @@ func (as *ApiSuite) TestGetUserBanner(t provider.T) {
 		apitest.New().
 			Handler(as.router).
 			Get(path).
-			Query(bh.FeatureIdParam, "3").Query(bh.TagIdParam, "1").
+			Query(bh.FeatureIDParam, "3").Query(bh.TagIDParam, "1").
 			Header(middleware.TokenHeaderField, string(as.authService.GetUserToken())).
 			Expect(t).
 			Body(string(bannerContentList[cashedBanner])).
@@ -195,10 +202,10 @@ func (as *ApiSuite) TestGetUserBanner(t provider.T) {
 			End()
 
 		_, err := as.bannerRepository.UpdateBanner(&entity.BannerUpdate{
-			Id:        bannerList[cashedBanner].Id,
+			ID:        bannerList[cashedBanner].ID,
 			Content:   types.NewObject[types.Content](updatedContent),
-			TagIds:    types.NewNullObject[[]types.Id](),
-			FeatureId: types.NewNullObject[types.Id](),
+			TagIDs:    types.NewNullObject[[]types.ID](),
+			FeatureID: types.NewNullObject[types.ID](),
 			IsActive:  types.NewNullObject[bool](),
 		})
 		t.Require().NoError(err)
@@ -206,7 +213,7 @@ func (as *ApiSuite) TestGetUserBanner(t provider.T) {
 		apitest.New().
 			Handler(as.router).
 			Get(path).
-			Query(bh.FeatureIdParam, "3").Query(bh.TagIdParam, "1").Query(cmid.UseLastRevisionParam, "true").
+			Query(bh.FeatureIDParam, "3").Query(bh.TagIDParam, "1").Query(cmid.UseLastRevisionParam, "true").
 			Header(middleware.TokenHeaderField, string(as.authService.GetUserToken())).
 			Expect(t).
 			Body(updatedContent).
@@ -216,10 +223,10 @@ func (as *ApiSuite) TestGetUserBanner(t provider.T) {
 
 	t.Run("Успешное получение активного баннера с указанной версией", func(t provider.T) {
 		_, err := as.bannerRepository.UpdateBanner(&entity.BannerUpdate{
-			Id:        bannerList[cashedBanner].Id,
+			ID:        bannerList[cashedBanner].ID,
 			Content:   types.NewObject[types.Content](updatedContent),
-			TagIds:    types.NewNullObject[[]types.Id](),
-			FeatureId: types.NewNullObject[types.Id](),
+			TagIDs:    types.NewNullObject[[]types.ID](),
+			FeatureID: types.NewNullObject[types.ID](),
 			IsActive:  types.NewNullObject[bool](),
 		})
 		t.Require().NoError(err)
@@ -227,7 +234,7 @@ func (as *ApiSuite) TestGetUserBanner(t provider.T) {
 		apitest.New().
 			Handler(as.router).
 			Get(path).
-			Query(bh.FeatureIdParam, "3").Query(bh.TagIdParam, "1").
+			Query(bh.FeatureIDParam, "3").Query(bh.TagIDParam, "1").
 			Query(bh.VersionParam, "1").Query(cmid.UseLastRevisionParam, "true").
 			Header(middleware.TokenHeaderField, string(as.authService.GetUserToken())).
 			Expect(t).
@@ -240,7 +247,7 @@ func (as *ApiSuite) TestGetUserBanner(t provider.T) {
 		apitest.New().
 			Handler(as.router).
 			Get(path).
-			Query(bh.FeatureIdParam, "4").Query(bh.TagIdParam, "1").
+			Query(bh.FeatureIDParam, "4").Query(bh.TagIDParam, "1").
 			Header(middleware.TokenHeaderField, string(as.authService.GetUserToken())).
 			Expect(t).
 			Body(string(bannerContentList[otherCashedBanner])).
@@ -248,10 +255,10 @@ func (as *ApiSuite) TestGetUserBanner(t provider.T) {
 			End()
 
 		_, err := as.bannerRepository.UpdateBanner(&entity.BannerUpdate{
-			Id:        bannerList[otherCashedBanner].Id,
+			ID:        bannerList[otherCashedBanner].ID,
 			Content:   types.NewObject[types.Content](updatedContent),
-			TagIds:    types.NewNullObject[[]types.Id](),
-			FeatureId: types.NewNullObject[types.Id](),
+			TagIDs:    types.NewNullObject[[]types.ID](),
+			FeatureID: types.NewNullObject[types.ID](),
 			IsActive:  types.NewNullObject[bool](),
 		})
 		t.Require().NoError(err)
@@ -259,20 +266,19 @@ func (as *ApiSuite) TestGetUserBanner(t provider.T) {
 		apitest.New().
 			Handler(as.router).
 			Get(path).
-			Query(bh.FeatureIdParam, "4").Query(bh.TagIdParam, "1").
+			Query(bh.FeatureIDParam, "4").Query(bh.TagIDParam, "1").
 			Header(middleware.TokenHeaderField, string(as.authService.GetUserToken())).
 			Expect(t).
 			Body(string(bannerContentList[otherCashedBanner])).
 			Status(http.StatusOK).
 			End()
-
 	})
 
 	t.Run("Попытка получения неактивного баннера", func(t provider.T) {
 		apitest.New().
 			Handler(as.router).
 			Get(path).
-			Query(bh.FeatureIdParam, "2").Query(bh.TagIdParam, "4").
+			Query(bh.FeatureIDParam, "2").Query(bh.TagIDParam, "4").
 			Header(middleware.TokenHeaderField, string(as.authService.GetUserToken())).
 			Expect(t).
 			Status(http.StatusNotFound).
@@ -283,7 +289,7 @@ func (as *ApiSuite) TestGetUserBanner(t provider.T) {
 		apitest.New().
 			Handler(as.router).
 			Get(path).
-			Query(bh.FeatureIdParam, "3").Query(bh.TagIdParam, "4").
+			Query(bh.FeatureIDParam, "3").Query(bh.TagIDParam, "4").
 			Header(middleware.TokenHeaderField, string(as.authService.GetUserToken())).
 			Expect(t).
 			Status(http.StatusNotFound).
@@ -294,7 +300,7 @@ func (as *ApiSuite) TestGetUserBanner(t provider.T) {
 		apitest.New().
 			Handler(as.router).
 			Get(path).
-			Query(bh.FeatureIdParam, "3").Query(bh.TagIdParam, "4").
+			Query(bh.FeatureIDParam, "3").Query(bh.TagIDParam, "4").
 			Expect(t).
 			Status(http.StatusUnauthorized).
 			End()
@@ -304,7 +310,7 @@ func (as *ApiSuite) TestGetUserBanner(t provider.T) {
 		apitest.New().
 			Handler(as.router).
 			Get(path).
-			Query(bh.FeatureIdParam, "3").Query(bh.TagIdParam, "4").
+			Query(bh.FeatureIDParam, "3").Query(bh.TagIDParam, "4").
 			Header(middleware.TokenHeaderField, string(as.authService.GetAdminToken())).
 			Expect(t).
 			Status(http.StatusForbidden).
@@ -315,7 +321,7 @@ func (as *ApiSuite) TestGetUserBanner(t provider.T) {
 		apitest.New().
 			Handler(as.router).
 			Get(path).
-			Query(bh.FeatureIdParam, "mir").Query(bh.TagIdParam, "4").
+			Query(bh.FeatureIDParam, "mir").Query(bh.TagIDParam, "4").
 			Header(middleware.TokenHeaderField, string(as.authService.GetUserToken())).
 			Expect(t).
 			Status(http.StatusBadRequest).
@@ -324,7 +330,7 @@ func (as *ApiSuite) TestGetUserBanner(t provider.T) {
 		apitest.New().
 			Handler(as.router).
 			Get(path).
-			Query(bh.FeatureIdParam, "4").Query(bh.TagIdParam, "mir").
+			Query(bh.FeatureIDParam, "4").Query(bh.TagIDParam, "mir").
 			Header(middleware.TokenHeaderField, string(as.authService.GetUserToken())).
 			Expect(t).
 			Status(http.StatusBadRequest).
@@ -335,7 +341,7 @@ func (as *ApiSuite) TestGetUserBanner(t provider.T) {
 		apitest.New().
 			Handler(as.router).
 			Get(path).
-			Query(bh.TagIdParam, "4").
+			Query(bh.TagIDParam, "4").
 			Header(middleware.TokenHeaderField, string(as.authService.GetUserToken())).
 			Expect(t).
 			Status(http.StatusBadRequest).
@@ -344,7 +350,7 @@ func (as *ApiSuite) TestGetUserBanner(t provider.T) {
 		apitest.New().
 			Handler(as.router).
 			Get(path).
-			Query(bh.FeatureIdParam, "3").
+			Query(bh.FeatureIDParam, "3").
 			Header(middleware.TokenHeaderField, string(as.authService.GetUserToken())).
 			Expect(t).
 			Status(http.StatusBadRequest).

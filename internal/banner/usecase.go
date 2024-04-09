@@ -7,10 +7,10 @@ import (
 )
 
 type Usecase interface {
-	CreateBanner(tagIds []types.Id, featureId types.Id, content json.RawMessage, isActive bool) (types.Id, error)
-	DeleteBanner(id types.Id) error
-	UpdateBanner(id types.Id, banner *models.BannerUpdate) error
-	GetAdminBanners(featureId *types.Id, tagId *types.Id, offset *uint64, limit *uint64) ([]models.Banner, error)
-	GetUserBanner(featureId types.Id, tagId types.Id, version *uint32) (json.RawMessage, error)
-	DeleteFilteredBanner(featureId *types.Id, tagId *types.Id) error
+	CreateBanner(tagIDs []types.ID, featureID types.ID, content json.RawMessage, isActive bool) (types.ID, error)
+	DeleteBanner(id types.ID) error
+	UpdateBanner(id types.ID, banner *models.BannerUpdate) error
+	GetAdminBanners(featureID, tagID *types.ID, offset, limit *uint64) ([]models.Banner, error)
+	GetUserBanner(featureID, tagID types.ID, version *uint32) (json.RawMessage, error)
+	DeleteFilteredBanner(featureID, tagID *types.ID) error
 }

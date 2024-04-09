@@ -12,7 +12,11 @@ func WithTransaction(db *sqlx.DB, transaction func(tx *sqlx.Tx) error) error {
 	}
 
 	if err := transaction(tx); err != nil {
-		_ = tx.Rollback()
+		err = tx.Rollback()
+		if err != nil {
+			return errors.Wrapf(err, "can't rollback with error %s", err)
+		}
+
 		return err
 	}
 
