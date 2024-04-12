@@ -1,12 +1,10 @@
 package main
 
 import (
+	"bannersrv/internal/app"
+	"bannersrv/internal/app/config"
 	"flag"
 	"log"
-
-	"bannersrv/internal/app/config"
-
-	"bannersrv/internal/app"
 )
 
 func main() {

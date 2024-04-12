@@ -9,18 +9,13 @@ run:
   # Include test files or not.
   # Default: true
   tests: false
-  # List of build tags, all linters use it.
-  # Default: [].
-  skip-dirs:
-    - config
-    - cmd
-    - docs
-    - script
-    - md
-    - loadtest
   modules-download-mode: readonly
   allow-parallel-runners: true
   go: '1.22'
+issues:
+  exclude-dirs:
+    - docs
+    - loadtest
 # output configuration option
 output:
   # Format: colored-line-number|line-number|json|tab|checkstyle|code-climate|junit-xml|github-actions
@@ -31,7 +26,9 @@ output:
   # Example: "checkstyle:report.json,colored-line-number"
   #
   # Default: colored-line-number
-  format: colored-line-number
+  formats:
+    - format: github-actions
+    - format: colored-line-number
   # Print lines of code with issue.
   # Default: true
   print-issued-lines: true
@@ -92,8 +89,6 @@ linters-settings:
         disabled: true
       - name: redundant-import-alias
         disabled: true
-  gci:
-    local-prefixes: github.com/ThCompiler/go.beget.api
   dupl:
     threshold: 100
   errorlint:
@@ -127,18 +122,13 @@ linters-settings:
       - unnecessaryBlock
   gofumpt:
     extra-rules: true
-    lang-version: "1.22.1"
   gomnd:
-    settings:
-      mnd:
-        checks:
-          - argument
-          - case
-          - condition
-          - operation
-          - return
-  govet:
-    check-shadowing: true
+    checks:
+      - argument
+      - case
+      - condition
+      - operation
+      - return
   misspell:
     locale: US
   nestif:

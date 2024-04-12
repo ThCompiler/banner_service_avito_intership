@@ -248,7 +248,8 @@ func (*BannerRepository) filterBanners(tx pgx.Tx, bnr *entity.BannerInfo,
 	}
 
 	rows, err := tx.Query(context.Background(), query, args...)
-	defer rows.Close() // nolint: staticcheck // Close() doesn't return error
+	//nolint: staticcheck
+	defer rows.Close() //lint:ignore SA5001 Close() doesn't return error
 
 	if err != nil {
 		return nil, errors.Wrap(err, "can't execute filter banner query")
@@ -292,7 +293,8 @@ func (*BannerRepository) selectTagFeatureForBanners(tx pgx.Tx, banners []entity.
 	}
 
 	rows, err := tx.Query(context.Background(), getTagQuery, bannerIDs)
-	defer rows.Close() // nolint: staticcheck // Close() doesn't return error
+	//nolint: staticcheck
+	defer rows.Close() //lint:ignore SA5001 Close() doesn't return error
 
 	if err != nil {
 		return nil, errors.Wrap(err, "can't execute get tags for banner query")
@@ -337,7 +339,8 @@ func (*BannerRepository) selectContentForBanners(tx pgx.Tx, banners []entity.Ban
 	}
 
 	rows, err := tx.Query(context.Background(), getVersionQuery, bannerIDs)
-	defer rows.Close() // nolint: staticcheck // Close() doesn't return error
+	//nolint: staticcheck
+	defer rows.Close() //lint:ignore SA5001 Close() doesn't return error
 
 	if err != nil {
 		return nil, errors.Wrap(err, "can't execute get contents for banner query")

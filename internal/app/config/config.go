@@ -1,11 +1,10 @@
 package config
 
 import (
-	"fmt"
-
 	"bannersrv/pkg/logger"
 
 	"github.com/ilyakaznacheev/cleanenv"
+	"github.com/pkg/errors"
 )
 
 type Mode string
@@ -51,7 +50,7 @@ func NewConfig(path string) (*Config, error) {
 
 	err := cleanenv.ReadConfig(path, cfg)
 	if err != nil {
-		return nil, fmt.Errorf("config error: %s", err)
+		return nil, errors.Wrap(err, "config error")
 	}
 
 	return cfg, nil

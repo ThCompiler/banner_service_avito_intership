@@ -66,6 +66,12 @@ run-api-test: run-environment
 	go test -tags=integration ./...
 	make down-environment
 
+.PHONY: run-api-test-with-build
+run-api-test-with-build: build-docker-cron run-environment
+	sleep 5 # чтобы postgres успел инициализироваться
+	go test -tags=integration ./...
+	make down-environment
+
 # Дополнительно
 
 .PHONY: open-last-log

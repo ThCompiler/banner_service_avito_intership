@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bannersrv/internal/app/config"
 	"bannersrv/internal/banner"
 	bp "bannersrv/internal/banner/repository/postgres"
 	"context"
@@ -12,8 +13,6 @@ import (
 	"syscall"
 	"time"
 
-	"bannersrv/internal/app/config"
-
 	"github.com/go-co-op/gocron/v2"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/pkg/errors"
@@ -21,12 +20,15 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
-func main() {
+const defaultTaskPeriod = 18000
+
+func main() { // nolint: revive // this a small executable file and big length of function is possible
 	var configPath string
+
 	var period uint64
 
 	flag.StringVar(&configPath, "config", "./config/localhost-config.yaml", "path to config file")
-	flag.Uint64Var(&period, "period", 18000, "task start period in seconds")
+	flag.Uint64Var(&period, "period", defaultTaskPeriod, "task start period in seconds")
 	flag.Parse()
 
 	l := log.New(os.Stderr, "cron-service", log.LUTC)
@@ -67,7 +69,7 @@ func main() {
 	// Repository
 	bannerRepository := bp.NewBannerRepository(pg)
 
-	if _, err := cronScheduler.NewJob(
+	if _, err = cronScheduler.NewJob(
 		gocron.DurationJob(time.Duration(period)*time.Second),
 		gocron.NewTask(
 			func(rep banner.Repository, l *log.Logger) {
@@ -91,10 +93,8 @@ func main() {
 
 	l.Println("Start: service started")
 
-	select {
-	case s := <-interrupt:
-		l.Printf("RUN - signal: %s", s.String())
-	}
+	s := <-interrupt
+	l.Printf("RUN - signal: %s", s.String())
 
 	// Shutdown
 	err = cronScheduler.Shutdown()

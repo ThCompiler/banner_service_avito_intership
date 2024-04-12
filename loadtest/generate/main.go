@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bannersrv/internal/app/config"
+	"bannersrv/internal/pkg/types"
 	"context"
 	"encoding/json"
 	"flag"
@@ -8,9 +10,7 @@ import (
 	"os"
 	"time"
 
-	"bannersrv/internal/app/config"
 	bp "bannersrv/internal/banner/repository/postgres"
-	"bannersrv/internal/pkg/types"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/tidwall/randjson"
@@ -22,14 +22,22 @@ type CorrectPair struct {
 	TagIDs    []types.ID `json:"tag_ids"`
 }
 
+const (
+	defaultFeatureCount = 1000
+	defaultTagCount     = 1000
+	defaultBannerCount  = 6000
+	jsonContentDepth    = 12
+)
+
 func main() {
 	var featuresCount, tagsCount, countBanners uint64
+
 	var configPath string
 
 	flag.StringVar(&configPath, "config", "./config/localhost-config.yaml", "путь к конфигу подключения")
-	flag.Uint64Var(&featuresCount, "features", 2000, "число фичей")
-	flag.Uint64Var(&tagsCount, "tags", 2000, "число тэгов")
-	flag.Uint64Var(&countBanners, "banners", 16000, "число баннеров")
+	flag.Uint64Var(&featuresCount, "features", defaultFeatureCount, "число фичей")
+	flag.Uint64Var(&tagsCount, "tags", defaultTagCount, "число тэгов")
+	flag.Uint64Var(&countBanners, "banners", defaultBannerCount, "число баннеров")
 	flag.Parse()
 
 	cfg, err := config.NewConfig(configPath)
@@ -48,13 +56,14 @@ func main() {
 	cfx.MaxConnIdleTime = time.Duration(cfg.Postgres.TTLIDleConnections) * time.Millisecond
 
 	pg, err := pgxpool.NewWithConfig(context.Background(), cfx)
+	//nolint: staticcheck
+	defer pg.Close() //lint:ignore SA5001 Close() doesn't return error
+
 	if err != nil {
 		log.Fatalf("postgres.New: %s", err)
 	}
-	defer pg.Close()
 
 	if err = pg.Ping(context.Background()); err != nil {
-		pg.Close()
 		log.Fatalf("can't check connection to sql with error %s", err)
 	}
 
@@ -80,7 +89,7 @@ func main() {
 		for j := uint64(0); j < tagsCount; j += countTagsInBanner {
 			tags := tagsIDs[j:min(j+countTagsInBanner, tagsCount)]
 			featureID := featureIDs[i]
-			banner := randjson.Make(12, nil)
+			banner := randjson.Make(jsonContentDepth, nil)
 
 			createdID, err := bannerRepository.CreateBanner(featureID, tags, types.Content(banner), true)
 			if err != nil {

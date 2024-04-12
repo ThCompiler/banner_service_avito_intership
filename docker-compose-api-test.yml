@@ -23,6 +23,18 @@ services:
         limits:
           cpus: '2'
           memory: 4G
+  cron-service:
+    image: cron
+    networks:
+      - default-test
+    volumes:
+      - ./config/docker-config.yaml:/config.yaml
+    environment:
+      - CONFIG_PATH=/config.yaml
+      - TASK_PERIOD=10
+    depends_on:
+      - banner-bd-test
+    restart: on-failure
   chaches-test:
     image: "redis:alpine"
     expose:
