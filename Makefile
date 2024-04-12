@@ -31,6 +31,10 @@ build-banner:
 build-cron:
 	go build -o service -v ./cmd/cron
 
+.PHONY: build
+build: build-cron build-banner
+
+
 .PHONY: swag-gen
 swag-gen:
 	swag init --parseDependency --parseInternal --parseDepth 1 -d $(SWAG_DIRS) -g ./swag_info.go -o docs
