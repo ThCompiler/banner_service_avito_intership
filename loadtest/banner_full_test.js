@@ -18,7 +18,7 @@ export const options = {
     },
     discardResponseBodies: true,
     thresholds: {
-        http_req_failed: ['rate<0.0001'], // http errors should be less than 1%
+        http_req_failed: ['rate<0.0001'], // http errors should be less than 0.01%
         http_req_duration: ['p(99)<50'], // 99% of requests should be below 1s
     },
 };

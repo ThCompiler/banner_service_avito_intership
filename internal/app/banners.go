@@ -1,6 +1,8 @@
 package app
 
 import (
+	ah "bannersrv/external/auth/delivery/http/v1/handlers"
+	au "bannersrv/external/auth/usecase"
 	"bannersrv/internal/app/config"
 	"bannersrv/internal/pkg/metrics/prometheus"
 	"bannersrv/pkg/logger"
@@ -12,9 +14,6 @@ import (
 	"syscall"
 	"time"
 
-	ah "bannersrv/external/auth/delivery/http/v1/handlers"
-	au "bannersrv/external/auth/usecase"
-
 	v1 "bannersrv/internal/app/delivery/http/v1"
 	bh "bannersrv/internal/banner/delivery/http/v1/handlers"
 	bp "bannersrv/internal/banner/repository/postgres"
@@ -23,31 +22,35 @@ import (
 	cr "bannersrv/internal/caches/repository/redis"
 
 	"github.com/gin-gonic/gin"
-	"github.com/go-co-op/gocron/v2"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
-
-	"github.com/jmoiron/sqlx"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 type databases struct {
-	pg  *sqlx.DB
+	pg  *pgxpool.Pool
 	rds *redis.Client
 }
 
 func initDatabases(cfg *config.Config, l logger.Interface) *databases {
 	// Postgres
-	pg, err := sqlx.Open("pgx", cfg.Postgres.URL)
+	cfx, err := pgxpool.ParseConfig(cfg.Postgres.URL)
 	if err != nil {
 		l.Fatal("[App] Init - postgres.New: %s", err)
 	}
 
-	pg.SetConnMaxIdleTime(time.Duration(cfg.Postgres.TTLIDleConnections) * time.Millisecond)
-	pg.SetMaxOpenConns(cfg.Postgres.MaxConnections)
-	pg.SetMaxIdleConns(cfg.Postgres.MaxIDleConnections)
+	cfx.MaxConns = int32(cfg.Postgres.MaxConnections)
+	cfx.MinConns = int32(cfg.Postgres.MinConnections)
+	cfx.MaxConnIdleTime = time.Duration(cfg.Postgres.TTLIDleConnections) * time.Millisecond
 
-	if err = pg.Ping(); err != nil {
+	pg, err := pgxpool.NewWithConfig(context.Background(), cfx)
+	if err != nil {
+		l.Fatal("[App] Init - postgres.New: %s", err)
+	}
+
+	if err = pg.Ping(context.Background()); err != nil {
+		pg.Close()
 		l.Fatal("[App] Init - can't check connection to sql with error %s", err)
 	}
 
@@ -56,12 +59,14 @@ func initDatabases(cfg *config.Config, l logger.Interface) *databases {
 	// Redis
 	opt, err := redis.ParseURL(cfg.Redis.URL)
 	if err != nil {
+		pg.Close()
 		l.Fatal("[App] Init  - redis - redis.New: %s", err)
 	}
 
 	rds := redis.NewClient(opt)
 
 	if err = rds.Ping(context.Background()).Err(); err != nil {
+		pg.Close()
 		l.Fatal("[App] Init - can't check connection to redis with error: %s", err)
 	}
 
@@ -73,9 +78,7 @@ func initDatabases(cfg *config.Config, l logger.Interface) *databases {
 	}
 }
 
-func initRoutes(mode config.Mode, dbs *databases,
-	cronScheduler gocron.Scheduler, l logger.Interface,
-) (*gin.Engine, error) {
+func initRoutes(mode config.Mode, dbs *databases, l logger.Interface) (*gin.Engine, error) {
 	// metrics
 	metricsManager := prometheus.NewPrometheusMetrics("main")
 	if err := metricsManager.SetupMonitoring(); err != nil {
@@ -83,11 +86,7 @@ func initRoutes(mode config.Mode, dbs *databases,
 	}
 
 	// Repository
-	bannerRepository, err := bp.NewBannerRepository(dbs.pg, cronScheduler, l)
-	if err != nil {
-		l.Fatal("[App] Init - initialize BannerRepository error: %s", err)
-	}
-
+	bannerRepository := bp.NewBannerRepository(dbs.pg)
 	cacheRepository := cr.NewCashRedis(dbs.rds)
 
 	// Use-cases
@@ -122,13 +121,8 @@ func Run(cfg *config.Config) {
 	dbs := initDatabases(cfg, l)
 	defer dbs.pg.Close()
 
-	// Cron
-	cronScheduler, err := gocron.NewScheduler()
-	if err != nil {
-		l.Fatal("[App] Init - start cronScheduler error: %s", err)
-	}
-
-	router, err := initRoutes(cfg.Mode, dbs, cronScheduler, l)
+	// Routes
+	router, err := initRoutes(cfg.Mode, dbs, l)
 	if err != nil {
 		l.Fatal("[App] Init - init handler error: %s", err)
 	}
@@ -138,8 +132,6 @@ func Run(cfg *config.Config) {
 	// Waiting signal
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
-	cronScheduler.Start()
-
 	l.Info("[App] Start - server started")
 
 	select {
@@ -153,11 +145,6 @@ func Run(cfg *config.Config) {
 	err = httpServer.Shutdown()
 	if err != nil {
 		l.Fatal(fmt.Errorf("[App] Stop - httpServer.Shutdown: %w", err))
-	}
-
-	err = cronScheduler.Shutdown()
-	if err != nil {
-		l.Fatal(fmt.Errorf("[App] Stop - cronScheduler.Shutdown: %w", err))
 	}
 
 	l.Info("[App] Stop - server stopped")

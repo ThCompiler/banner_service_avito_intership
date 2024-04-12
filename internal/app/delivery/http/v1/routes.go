@@ -31,10 +31,6 @@ func NewRouter(root string, routes Routes, mode config.Mode,
 
 	router := gin.New()
 
-	if mode == config.DebugProf || mode == config.ReleaseProf {
-		pprof.Register(router)
-	}
-
 	promHandler := promhttp.Handler()
 
 	router.GET("/metrics", func(c *gin.Context) {
@@ -48,6 +44,10 @@ func NewRouter(root string, routes Routes, mode config.Mode,
 	for _, route := range routes {
 		route.Middlewares = append(route.Middlewares, route.HandlerFunc)
 		v1.Handle(route.Method, route.Pattern, route.Middlewares...)
+	}
+
+	if mode == config.DebugProf || mode == config.ReleaseProf {
+		pprof.Register(router)
 	}
 
 	return router, nil

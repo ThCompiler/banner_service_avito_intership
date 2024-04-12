@@ -3,18 +3,6 @@ volumes:
   postgis-data-test:
   chaches-data-test:
 services:
-#  main:
-#    image: main
-#    networks:
-#      - default
-#    volumes:
-#      - ./logs:/app/app-log
-#      - ./config.yaml:/app/config.yaml
-#    ports:
-#      - "8080:8080"
-#    depends_on:
-#      - quests-bd
-#    restart: on-failure
   banner-bd-test:
     image: postgres:16
     expose:

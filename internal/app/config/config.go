@@ -37,7 +37,7 @@ type (
 	PG struct {
 		URL                string `yaml:"url"`
 		MaxConnections     int    `yaml:"max_connections" default:"5"`
-		MaxIDleConnections int    `yaml:"max_idle_connections" default:"2"`
+		MinConnections     int    `yaml:"min_connections" default:"2"`
 		TTLIDleConnections uint64 `yaml:"ttl_idle_connections" default:"10"`
 	}
 

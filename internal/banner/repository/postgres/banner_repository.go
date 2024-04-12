@@ -1,20 +1,16 @@
 package postgres
 
 import (
-	"bannersrv/internal/banner"
 	"bannersrv/internal/banner/entity"
 	"bannersrv/internal/banner/repository"
 	"bannersrv/internal/pkg/pg"
 	"bannersrv/internal/pkg/types"
-	"bannersrv/pkg/logger"
-	"bannersrv/pkg/slices"
-	"database/sql"
-	"time"
+	"context"
 
-	"github.com/go-co-op/gocron/v2"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/jmoiron/sqlx"
-	"github.com/lib/pq"
+	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/pkg/errors"
 )
 
@@ -36,12 +32,18 @@ const (
 	`
 
 	deleteQuery = `
-		DELETE FROM banner WHERE id = $1 RETURNING id
+		DELETE FROM banner WHERE id IN 
+		 (SELECT DISTINCT banner_id FROM features_tags_banner 
+				  WHERE not deleted and banner_id = $1) RETURNING id
+	`
+
+	checkDeleted = `
+		SELECT banner_id FROM features_tags_banner WHERE banner_id = $1 and not deleted
 	`
 
 	updateActiveQuery = `
 		UPDATE banner SET is_active = $2
-			WHERE id = $1 and not deleted
+			WHERE id = $1
 			RETURNING id
 	`
 
@@ -58,85 +60,58 @@ const (
 
 	getQuery = `
 		SELECT vb.content FROM banner
-		   INNER JOIN features_tags_banner on (features_tags_banner.banner_id = banner.id)
+		   INNER JOIN features_tags_banner on (features_tags_banner.banner_id = banner.id and not deleted)
 		   LEFT JOIN version_banner as vb on (vb.banner_id = banner.id)
-		WHERE is_active and not deleted and vb.version = COALESCE($3::bigint, banner.last_version) 
+		WHERE is_active and vb.version = COALESCE($3::bigint, banner.last_version) 
 		  		and feature_id = $1 and tag_id = $2 LIMIT 1
 	`
 
-	filterQuery = `
-		SELECT banner.id, array_agg(ftb.tag_id)::bigint[] as tag_ids, ftb.feature_id, banner.is_active,
-       		banner.created_at, banner.updated_at FROM banner
-		INNER JOIN features_tags_banner as ftb ON (ftb.banner_id = banner.id)
-		WHERE not deleted and banner.id in (
-			(
-				SELECT DISTINCT banner_id FROM features_tags_banner
-				WHERE (CASE WHEN $1::bigint IS NOT NULL THEN feature_id = $1 ELSE true END)
-      			and (CASE WHEN $2::bigint IS NOT NULL THEN tag_id = $2 ELSE true END) 
-			)
-		)
-		GROUP BY banner.id, ftb.feature_id
-		LIMIT $3 OFFSET $4
+	filterNullQuery = `
+		SELECT banner.id, is_active, created_at, updated_at FROM banner LIMIT $1 OFFSET $2
+	`
+
+	filterNotNullQuery = `
+		SELECT DISTINCT banner.id, is_active,
+                        created_at, updated_at FROM banner
+			INNER JOIN features_tags_banner as ftb ON (ftb.banner_id = banner.id  and not deleted)
+			WHERE (CASE WHEN $1::bigint IS NOT NULL THEN feature_id = $1 ELSE true END)
+			and (CASE WHEN $2::bigint IS NOT NULL THEN tag_id = $2 ELSE true END)
+			LIMIT $3 OFFSET $4
+	`
+
+	getTagQuery = `
+		SELECT banner_id, array_agg(tag_id), feature_id FROM features_tags_banner 
+		                                                WHERE banner_id = ANY ($1::bigint[])
+		GROUP BY banner_id, feature_id 
 	`
 
 	getVersionQuery = `
-		SELECT banner_id, content, version, created_at FROM version_banner WHERE banner_id in (?)
+		SELECT banner_id, content, version, created_at FROM version_banner WHERE banner_id = ANY ($1::bigint[])
 	`
-	//	WITH filter_banner AS (
-	// SELECT DISTINCT banner_id FROM features_tags_banner
-	// WHERE (CASE WHEN $1::bigint IS NOT NULL THEN feature_id = $1 ELSE true END)
-	// and (CASE WHEN $2::bigint IS NOT NULL THEN tag_id = $2 ELSE true END)
-	// )
+
 	delayedDeletionQuery = `
-		UPDATE banner SET deleted = true FROM features_tags_banner 
-			 WHERE banner.id = features_tags_banner.banner_id and
-				   (CASE WHEN $1::bigint IS NOT NULL THEN feature_id = $1 ELSE true END)
+		UPDATE features_tags_banner SET deleted = true 
+			 WHERE (CASE WHEN $1::bigint IS NOT NULL THEN feature_id = $1 ELSE true END)
 					and (CASE WHEN $2::bigint IS NOT NULL THEN tag_id = $2 ELSE true END) 
 	`
 
 	cronDeleteQuery = `
-		DELETE FROM banner WHERE deleted
+		DELETE FROM banner WHERE id IN (SELECT DISTINCT banner_id FROM features_tags_banner WHERE not deleted)
 	`
 )
 
-const (
-	durationToCronDeleteBanner = 5 * time.Hour
-)
-
 type BannerRepository struct {
-	db             *sqlx.DB
-	tasksScheduler gocron.Scheduler
-	l              logger.Interface
+	db *pgxpool.Pool
 }
 
-func NewBannerRepository(db *sqlx.DB, tasksScheduler gocron.Scheduler, l logger.Interface) (*BannerRepository, error) {
-	br := &BannerRepository{
-		db:             db,
-		tasksScheduler: tasksScheduler,
-		l:              l,
+func NewBannerRepository(db *pgxpool.Pool) *BannerRepository {
+	return &BannerRepository{
+		db: db,
 	}
-
-	if _, err := tasksScheduler.NewJob(
-		gocron.DurationJob(durationToCronDeleteBanner),
-		gocron.NewTask(
-			func(rep banner.Repository, l logger.Interface) {
-				if err := rep.CleanDeletedBanner(); err != nil {
-					l.Error(errors.Wrap(err, "in cron job of cleaning deleted banner"))
-				}
-				l.Info("deleted banner was cleaned by cron job")
-			},
-			br,
-			l,
-		),
-	); err != nil {
-		return nil, err
-	}
-
-	return br, nil
 }
 
-func (*BannerRepository) addContent(tx *sqlx.Tx, id types.ID, content types.Content) error {
-	if _, err := tx.Exec(addContentQuery, id, content); err != nil {
+func (*BannerRepository) addContent(tx pgx.Tx, id types.ID, content types.Content) error {
+	if _, err := tx.Exec(context.Background(), addContentQuery, id, content); err != nil {
 		return errors.Wrap(err, "can't add content to banner")
 	}
 
@@ -149,8 +124,8 @@ func (br *BannerRepository) CreateBanner(featureID types.ID, tagIDs []types.ID,
 	var createdID types.ID
 
 	if err := pg.WithTransaction(br.db,
-		func(tx *sqlx.Tx) error {
-			if err := tx.QueryRowx(createQuery, isActive).
+		func(tx pgx.Tx) error {
+			if err := tx.QueryRow(context.Background(), createQuery, isActive).
 				Scan(
 					&createdID,
 				); err != nil {
@@ -161,7 +136,8 @@ func (br *BannerRepository) CreateBanner(featureID types.ID, tagIDs []types.ID,
 				return err
 			}
 
-			if _, err := tx.Exec(addFeaturesAndTagsQuery, createdID, featureID, pq.Array(tagIDs)); err != nil {
+			if _, err := tx.Exec(context.Background(), addFeaturesAndTagsQuery, createdID, featureID,
+				pgtype.FlatArray[types.ID](tagIDs)); err != nil {
 				return errors.Wrapf(checkPgConflictError(err),
 					"can't add feature id %d and tag ids %v to banner", featureID, tagIDs)
 			}
@@ -177,11 +153,11 @@ func (br *BannerRepository) CreateBanner(featureID types.ID, tagIDs []types.ID,
 
 func (br *BannerRepository) DeleteBanner(id types.ID) (types.ID, error) {
 	var deletedID types.ID
-	if err := br.db.QueryRowx(deleteQuery, id).
+	if err := br.db.QueryRow(context.Background(), deleteQuery, id).
 		Scan(
 			&deletedID,
 		); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+		if errors.Is(err, pgx.ErrNoRows) {
 			return deletedID, errors.Wrapf(repository.ErrorBannerNotFound, "with id %d", id)
 		}
 
@@ -191,18 +167,18 @@ func (br *BannerRepository) DeleteBanner(id types.ID) (types.ID, error) {
 	return deletedID, nil
 }
 
-func (*BannerRepository) updateBannerInfo(tx *sqlx.Tx, bnr *entity.BannerUpdate) error {
+func (*BannerRepository) updateBannerInfo(tx pgx.Tx, bnr *entity.BannerUpdate) error {
 	switch {
 	// Если у нас изменился только айди фичи, её можно обновить по id баннера
 	case bnr.TagIDs.IsNull && !bnr.FeatureID.IsNull:
-		if _, err := tx.Exec(updateFeaturesQuery, bnr.ID, bnr.FeatureID.Value); err != nil {
+		if _, err := tx.Exec(context.Background(), updateFeaturesQuery, bnr.ID, bnr.FeatureID.Value); err != nil {
 			return errors.Wrapf(checkPgConflictError(err),
 				"can't update feature id %d to banner", bnr.FeatureID.Value)
 		}
 	// Если у нас изменился список тэгов, то нужно сначала удалить все записи с тэгами, а потом их снова создать
 	case !bnr.TagIDs.IsNull:
 		var featureID types.ID
-		if err := tx.QueryRowx(deleteFeaturesTagsQuery, bnr.ID).Scan(&featureID); err != nil {
+		if err := tx.QueryRow(context.Background(), deleteFeaturesTagsQuery, bnr.ID).Scan(&featureID); err != nil {
 			return errors.Wrap(err, "can't delete feature id and tag ids of banner")
 		}
 
@@ -210,7 +186,8 @@ func (*BannerRepository) updateBannerInfo(tx *sqlx.Tx, bnr *entity.BannerUpdate)
 			featureID = bnr.FeatureID.Value
 		}
 
-		if _, err := tx.Exec(addFeaturesAndTagsQuery, bnr.ID, featureID, pq.Array(bnr.TagIDs.Value)); err != nil {
+		if _, err := tx.Exec(context.Background(), addFeaturesAndTagsQuery, bnr.ID, featureID,
+			pgtype.FlatArray[types.ID](bnr.TagIDs.Value)); err != nil {
 			return errors.Wrapf(checkPgConflictError(err),
 				"can't add feature id %d and tag ids %v to banner", featureID, bnr.TagIDs.Value)
 		}
@@ -223,10 +200,20 @@ func (br *BannerRepository) UpdateBanner(bnr *entity.BannerUpdate) (types.ID, er
 	var updatedID types.ID
 
 	if err := pg.WithTransaction(br.db,
-		func(tx *sqlx.Tx) error {
+		func(tx pgx.Tx) error {
+			if err := tx.QueryRow(context.Background(), checkDeleted, bnr.ID).Scan(&updatedID); err != nil {
+				if errors.Is(err, pgx.ErrNoRows) {
+					return repository.ErrorBannerNotFound
+				}
+
+				return errors.Wrapf(err, "can't check banner on deleted")
+			}
+
 			if !bnr.IsActive.IsNull {
-				if err := tx.QueryRowx(updateActiveQuery, bnr.ID, bnr.IsActive.Value).Scan(&updatedID); err != nil {
-					if errors.Is(err, sql.ErrNoRows) {
+				if err := tx.QueryRow(context.Background(), updateActiveQuery,
+					bnr.ID, bnr.IsActive.Value).
+					Scan(&updatedID); err != nil {
+					if errors.Is(err, pgx.ErrNoRows) {
 						return repository.ErrorBannerNotFound
 					}
 
@@ -249,21 +236,19 @@ func (br *BannerRepository) UpdateBanner(bnr *entity.BannerUpdate) (types.ID, er
 	return updatedID, nil
 }
 
-func (*BannerRepository) filterBanners(tx *sqlx.Tx, bnr *entity.BannerInfo,
+func (*BannerRepository) filterBanners(tx pgx.Tx, bnr *entity.BannerInfo,
 	offset, limit uint64,
 ) ([]entity.Banner, error) {
-	rows, err := tx.Queryx(filterQuery,
-		&sql.NullInt64{
-			Valid: !bnr.FeatureID.IsNull,
-			Int64: int64(bnr.FeatureID.Value),
-		}, &sql.NullInt64{
-			Valid: !bnr.TagID.IsNull,
-			Int64: int64(bnr.TagID.Value),
-		},
-		limit, offset)
-	defer func() {
-		_ = rows.Close()
-	}()
+	args := []any{bnr.FeatureID.ToNullableSQL(), bnr.TagID.ToNullableSQL(), limit, offset}
+	query := filterNotNullQuery
+
+	if bnr.FeatureID.IsNull && bnr.TagID.IsNull {
+		args = []any{limit, offset}
+		query = filterNullQuery
+	}
+
+	rows, err := tx.Query(context.Background(), query, args...)
+	defer rows.Close() // nolint: staticcheck // Close() doesn't return error
 
 	if err != nil {
 		return nil, errors.Wrap(err, "can't execute filter banner query")
@@ -274,12 +259,8 @@ func (*BannerRepository) filterBanners(tx *sqlx.Tx, bnr *entity.BannerInfo,
 	for rows.Next() {
 		var filteredBanner entity.Banner
 
-		tagIDs := make([]int64, 0)
-
 		err := rows.Scan(
 			&filteredBanner.ID,
-			pq.Array(&tagIDs),
-			&filteredBanner.FeatureID,
 			&filteredBanner.IsActive,
 			&filteredBanner.CreatedAt,
 			&filteredBanner.UpdatedAt,
@@ -288,7 +269,7 @@ func (*BannerRepository) filterBanners(tx *sqlx.Tx, bnr *entity.BannerInfo,
 			return nil, errors.Wrap(err, "can't scan filter banner query result")
 		}
 
-		filteredBanner.TagIDs = slices.Map(tagIDs, func(id *int64) types.ID { return types.ID(*id) })
+		filteredBanner.TagIDs = make([]types.ID, 0)
 		filteredBanner.Versions = make([]entity.Content, 0)
 
 		banners = append(banners, filteredBanner)
@@ -301,7 +282,7 @@ func (*BannerRepository) filterBanners(tx *sqlx.Tx, bnr *entity.BannerInfo,
 	return banners, nil
 }
 
-func (*BannerRepository) selectContentForBanners(tx *sqlx.Tx, banners []entity.Banner) ([]entity.Banner, error) {
+func (*BannerRepository) selectTagFeatureForBanners(tx pgx.Tx, banners []entity.Banner) ([]entity.Banner, error) {
 	bannerIDs := make([]types.ID, len(banners))
 	bannerIndexes := make(map[types.ID]int64)
 
@@ -310,17 +291,53 @@ func (*BannerRepository) selectContentForBanners(tx *sqlx.Tx, banners []entity.B
 		bannerIndexes[bnr.ID] = int64(index)
 	}
 
-	query, args, err := sqlx.In(getVersionQuery, bannerIDs)
+	rows, err := tx.Query(context.Background(), getTagQuery, bannerIDs)
+	defer rows.Close() // nolint: staticcheck // Close() doesn't return error
+
 	if err != nil {
-		return nil, errors.Wrap(err, "can't prepare query to get contents for banner")
+		return nil, errors.Wrap(err, "can't execute get tags for banner query")
 	}
 
-	query = tx.Rebind(query)
+	for rows.Next() {
+		var tags pgtype.Array[types.ID]
 
-	rows, err := tx.Queryx(query, args...)
-	defer func() {
-		_ = rows.Close()
-	}()
+		var bannerID, featureID types.ID
+
+		err := rows.Scan(
+			&bannerID,
+			&tags,
+			&featureID,
+		)
+		if err != nil {
+			return nil, errors.Wrap(err, "can't scan get tags for banner query result")
+		}
+
+		banners[bannerIndexes[bannerID]].FeatureID = featureID
+
+		banners[bannerIndexes[bannerID]].TagIDs = []types.ID{}
+		if tags.Valid {
+			banners[bannerIndexes[bannerID]].TagIDs = tags.Elements
+		}
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, errors.Wrap(err, "can't end scan get tags for banner query result")
+	}
+
+	return banners, nil
+}
+
+func (*BannerRepository) selectContentForBanners(tx pgx.Tx, banners []entity.Banner) ([]entity.Banner, error) {
+	bannerIDs := make([]types.ID, len(banners))
+	bannerIndexes := make(map[types.ID]int64)
+
+	for index, bnr := range banners {
+		bannerIDs[index] = bnr.ID
+		bannerIndexes[bnr.ID] = int64(index)
+	}
+
+	rows, err := tx.Query(context.Background(), getVersionQuery, bannerIDs)
+	defer rows.Close() // nolint: staticcheck // Close() doesn't return error
 
 	if err != nil {
 		return nil, errors.Wrap(err, "can't execute get contents for banner query")
@@ -357,7 +374,7 @@ func (br *BannerRepository) GetBanners(bnr *entity.BannerInfo,
 	var banners []entity.Banner
 
 	if err := pg.WithTransaction(br.db,
-		func(tx *sqlx.Tx) error {
+		func(tx pgx.Tx) error {
 			var err error
 
 			banners, err = br.filterBanners(tx, bnr, offset, limit)
@@ -367,6 +384,11 @@ func (br *BannerRepository) GetBanners(bnr *entity.BannerInfo,
 
 			if len(banners) == 0 {
 				return nil
+			}
+
+			banners, err = br.selectTagFeatureForBanners(tx, banners)
+			if err != nil {
+				return err
 			}
 
 			banners, err = br.selectContentForBanners(tx, banners)
@@ -389,15 +411,15 @@ func (br *BannerRepository) GetBanner(featureID, tagID types.ID,
 	version types.NullableObject[uint32],
 ) (types.Content, error) {
 	var content types.Content
-	if err := br.db.QueryRowx(getQuery, featureID, tagID,
-		&sql.NullInt64{
-			Valid: !version.IsNull,
-			Int64: int64(version.Value),
+	if err := br.db.QueryRow(context.Background(), getQuery, featureID, tagID,
+		&pgtype.Uint32{
+			Valid:  !version.IsNull,
+			Uint32: version.Value,
 		}).
 		Scan(
 			&content,
 		); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+		if errors.Is(err, pgx.ErrNoRows) {
 			return content, errors.Wrapf(repository.ErrorBannerNotFound,
 				"with feature id %d and tag id %d and version %v", featureID, tagID, version)
 		}
@@ -409,56 +431,28 @@ func (br *BannerRepository) GetBanner(featureID, tagID types.ID,
 	return content, nil
 }
 
-func (br *BannerRepository) runCronJob() error {
-	// Вызываем отложенное удаление баннера
-	_, err := br.tasksScheduler.NewJob(
-		gocron.OneTimeJob(gocron.OneTimeJobStartImmediately()),
-		gocron.NewTask(
-			func(rep banner.Repository, l logger.Interface) {
-				if err := rep.CleanDeletedBanner(); err != nil {
-					l.Error(errors.Wrap(err, "in immediately cron job of cleaning deleted banner"))
-				}
-
-				l.Info("deleted banner was cleaned by immediately cron job")
-			},
-			br,
-			br.l,
-		),
-	)
-	if err != nil {
-		// т.к. не получилось создать задачу удаление, и мы возвращаем ошибку пользователя,
-		// надо отменить удаление баннера
-		return errors.Wrap(err, "can't start task to delete banner")
-	}
-
-	return nil
-}
-
 func (br *BannerRepository) DeleteFilteredBanner(bnr *entity.BannerInfo) error {
 	if err := pg.WithTransaction(br.db,
-		func(tx *sqlx.Tx) error {
-			res, err := tx.Exec(delayedDeletionQuery,
-				&sql.NullInt64{
-					Valid: !bnr.FeatureID.IsNull,
-					Int64: int64(bnr.FeatureID.Value),
-				}, &sql.NullInt64{
-					Valid: !bnr.TagID.IsNull,
-					Int64: int64(bnr.TagID.Value),
+		func(tx pgx.Tx) error {
+			res, err := tx.Exec(context.Background(), delayedDeletionQuery,
+				&pgtype.Uint32{
+					Valid:  !bnr.FeatureID.IsNull,
+					Uint32: uint32(bnr.FeatureID.Value),
+				}, &pgtype.Uint32{
+					Valid:  !bnr.TagID.IsNull,
+					Uint32: uint32(bnr.TagID.Value),
 				})
 			if err != nil {
 				return errors.Wrap(err, "can't delete banner")
 			}
 
-			effected, err := res.RowsAffected()
-			if err != nil {
-				return errors.Wrap(err, "can't get result of deleting banner")
-			}
+			effected := res.RowsAffected()
 
 			if effected == 0 {
 				return repository.ErrorBannerNotFound
 			}
 
-			return br.runCronJob()
+			return nil
 		},
 	); err != nil {
 		return errors.Wrapf(err,
@@ -469,7 +463,7 @@ func (br *BannerRepository) DeleteFilteredBanner(bnr *entity.BannerInfo) error {
 }
 
 func (br *BannerRepository) CleanDeletedBanner() error {
-	_, err := br.db.Exec(cronDeleteQuery)
+	_, err := br.db.Exec(context.Background(), cronDeleteQuery)
 	if err != nil {
 		return errors.Wrap(err, "can't delete deleted banner")
 	}

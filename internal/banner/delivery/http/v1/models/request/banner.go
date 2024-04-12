@@ -57,7 +57,7 @@ func (ub *UpdateBanner) ToModel() *models.BannerUpdate {
 	return &models.BannerUpdate{
 		Content:   types.ObjectFromPointer(ub.Content),
 		IsActive:  types.ObjectFromPointer(ub.IsActive),
-		FeatureID: types.ObjectFromPointer(ub.FeatureID),
+		FeatureID: (*types.NullableID)(types.ObjectFromPointer(ub.FeatureID)),
 		TagIDs: &types.NullableObject[[]types.ID]{
 			IsNull: len(ub.TagsIDs) == 0,
 			Value:  ub.TagsIDs,

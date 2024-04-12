@@ -29,11 +29,6 @@ const (
 	offsetParam    = "offset"
 )
 
-const (
-	size64 = 64
-	base10 = 10
-)
-
 type BannerHandlers struct {
 	usecase banner.Usecase
 	cache   caches.Manager
@@ -109,7 +104,7 @@ func (bh *BannerHandlers) DeleteBanner(c *gin.Context) {
 	l := middleware.GetLogger(c)
 
 	// Получение уникального идентификатора
-	id, err := strconv.ParseUint(c.Param(BannerIDField), base10, size64)
+	id, err := strconv.ParseUint(c.Param(BannerIDField), 10, 64)
 	if err != nil {
 		tools.SendError(c, errors.Wrapf(err, "try get banner id"), http.StatusBadRequest, l)
 
@@ -155,7 +150,7 @@ func (bh *BannerHandlers) UpdateBanner(c *gin.Context) {
 	l := middleware.GetLogger(c)
 
 	// Получение уникального идентификатора
-	id, err := strconv.ParseUint(c.Param(BannerIDField), base10, size64)
+	id, err := strconv.ParseUint(c.Param(BannerIDField), 10, 64)
 	if err != nil {
 		tools.SendError(c, errors.Wrapf(err, "try get banner id"), http.StatusBadRequest, l)
 

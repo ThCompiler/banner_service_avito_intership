@@ -4,7 +4,6 @@ CREATE TABLE IF NOT EXISTS banner
     is_active    boolean     not null default true,
     created_at   timestamptz not null default now(), -- время появление банера как такового
     updated_at   timestamptz not null default now(), -- время последнего изменения банера
-    deleted      boolean     not null default false,
     last_version bigint      not null default 1
 );
 
@@ -15,8 +14,10 @@ CREATE TABLE IF NOT EXISTS features_tags_banner
     banner_id  bigint    not null references banner (id) on delete cascade,
     tag_id     bigint    not null,
     feature_id bigint    not null,
-    constraint banner_identifier UNIQUE (tag_id, feature_id)
+    deleted    boolean   not null default false
 );
+
+CREATE UNIQUE INDEX banner_identifier ON features_tags_banner (tag_id, feature_id) WHERE not deleted;
 
 CREATE TABLE IF NOT EXISTS version_banner
 (
@@ -69,6 +70,8 @@ CREATE OR REPLACE TRIGGER banner_insert_version
 EXECUTE FUNCTION banner_insert_version_trigger();
 
 -- Получены в ходе тестирование под нагрузкой запросов на получение
-CREATE INDEX banner_feature on features_tags_banner (feature_id);
-CREATE INDEX banner_tag on features_tags_banner (tag_id);
-CREATE INDEX banner_feature_ids on features_tags_banner (banner_id);
+CREATE INDEX banner_feature on features_tags_banner (feature_id) WHERE not deleted;
+CREATE INDEX banner_tag on features_tags_banner (tag_id) WHERE not deleted;
+CREATE INDEX banner_feature_ids on features_tags_banner (banner_id) WHERE not deleted;
+CREATE INDEX version_banner_id ON version_banner(banner_id)
+CREATE INDEX feature_banner on features_tags_banner(banner_id, feature_id);

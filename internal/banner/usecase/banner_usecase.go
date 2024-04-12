@@ -58,8 +58,8 @@ func (bu *BannerUsecase) GetAdminBanners(featureID, tagID *types.ID,
 	}
 
 	banners, err := bu.rep.GetBanners(&entity.BannerInfo{
-		FeatureID: types.ObjectFromPointer(featureID),
-		TagID:     types.ObjectFromPointer(tagID),
+		FeatureID: (*types.NullableID)(types.ObjectFromPointer(featureID)),
+		TagID:     (*types.NullableID)(types.ObjectFromPointer(tagID)),
 	}, entityOffset, entityLimit)
 	if err != nil {
 		return nil, err
@@ -81,7 +81,7 @@ func (bu *BannerUsecase) GetUserBanner(featureID, tagID types.ID, version *uint3
 
 func (bu *BannerUsecase) DeleteFilteredBanner(featureID, tagID *types.ID) error {
 	return bu.rep.DeleteFilteredBanner(&entity.BannerInfo{
-		FeatureID: types.ObjectFromPointer(featureID),
-		TagID:     types.ObjectFromPointer(tagID),
+		FeatureID: (*types.NullableID)(types.ObjectFromPointer(featureID)),
+		TagID:     (*types.NullableID)(types.ObjectFromPointer(tagID)),
 	})
 }

@@ -12,7 +12,7 @@ import (
 func main() {
 	var configPath string
 
-	flag.StringVar(&configPath, "config", "./config.yaml", "path to config file")
+	flag.StringVar(&configPath, "config", "./config/localhost-config.yaml", "path to config file")
 	flag.Parse()
 
 	cfg, err := config.NewConfig(configPath)

@@ -24,12 +24,12 @@ type Banner struct {
 type BannerUpdate struct {
 	ID        types.ID
 	Content   *types.NullableObject[types.Content]
-	FeatureID *types.NullableObject[types.ID]
+	FeatureID *types.NullableID
 	TagIDs    *types.NullableObject[[]types.ID]
 	IsActive  *types.NullableObject[bool]
 }
 
 type BannerInfo struct {
-	FeatureID *types.NullableObject[types.ID]
-	TagID     *types.NullableObject[types.ID]
+	FeatureID *types.NullableID
+	TagID     *types.NullableID
 }

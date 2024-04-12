@@ -1,18 +1,18 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"log"
 	"os"
+	"time"
 
 	"bannersrv/internal/app/config"
 	bp "bannersrv/internal/banner/repository/postgres"
 	"bannersrv/internal/pkg/types"
-	"bannersrv/pkg/logger"
 
-	"github.com/go-co-op/gocron/v2"
-	"github.com/jmoiron/sqlx"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/tidwall/randjson"
 )
 
@@ -27,9 +27,9 @@ func main() {
 	var configPath string
 
 	flag.StringVar(&configPath, "config", "./config/localhost-config.yaml", "путь к конфигу подключения")
-	flag.Uint64Var(&featuresCount, "features", 1000, "число фичей")
-	flag.Uint64Var(&tagsCount, "tags", 1000, "число тэгов")
-	flag.Uint64Var(&countBanners, "banners", 8000, "число баннеров")
+	flag.Uint64Var(&featuresCount, "features", 2000, "число фичей")
+	flag.Uint64Var(&tagsCount, "tags", 2000, "число тэгов")
+	flag.Uint64Var(&countBanners, "banners", 16000, "число баннеров")
 	flag.Parse()
 
 	cfg, err := config.NewConfig(configPath)
@@ -38,27 +38,28 @@ func main() {
 	}
 
 	// Postgres
-	pg, err := sqlx.Open("postgres", cfg.Postgres.URL)
+	cfx, err := pgxpool.ParseConfig(cfg.Postgres.URL)
+	if err != nil {
+		log.Fatalf("postgres.New: %s", err)
+	}
+
+	cfx.MaxConns = int32(cfg.Postgres.MaxConnections)
+	cfx.MinConns = int32(cfg.Postgres.MinConnections)
+	cfx.MaxConnIdleTime = time.Duration(cfg.Postgres.TTLIDleConnections) * time.Millisecond
+
+	pg, err := pgxpool.NewWithConfig(context.Background(), cfx)
 	if err != nil {
 		log.Fatalf("postgres.New: %s", err)
 	}
 	defer pg.Close()
 
-	if err := pg.Ping(); err != nil {
+	if err = pg.Ping(context.Background()); err != nil {
+		pg.Close()
 		log.Fatalf("can't check connection to sql with error %s", err)
 	}
 
-	// Cron
-	cronScheduler, err := gocron.NewScheduler()
-	if err != nil {
-		log.Fatalf("start cronScheduler error: %s", err)
-	}
-
 	// Repository
-	bannerRepository, err := bp.NewBannerRepository(pg, cronScheduler, &logger.EmptyLogger{})
-	if err != nil {
-		log.Fatalf("[initialize BannerRepository error: %s", err)
-	}
+	bannerRepository := bp.NewBannerRepository(pg)
 
 	featureIDs := make([]types.ID, featuresCount)
 	tagsIDs := make([]types.ID, tagsCount)

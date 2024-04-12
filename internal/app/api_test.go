@@ -3,15 +3,10 @@
 package app
 
 import (
-	"bannersrv/internal/app/config"
-	"context"
-	"fmt"
-	"net/http"
-	"testing"
-
 	"bannersrv/external/auth"
 	ah "bannersrv/external/auth/delivery/http/v1/handlers"
 	au "bannersrv/external/auth/usecase"
+	"bannersrv/internal/app/config"
 	"bannersrv/internal/app/delivery/http/middleware"
 	v1 "bannersrv/internal/app/delivery/http/v1"
 	"bannersrv/internal/banner"
@@ -24,11 +19,14 @@ import (
 	cr "bannersrv/internal/caches/repository/redis"
 	"bannersrv/internal/pkg/types"
 	"bannersrv/pkg/logger"
+	"context"
+	"fmt"
+	"net/http"
+	"testing"
 
 	"github.com/gin-gonic/gin"
-	"github.com/go-co-op/gocron/v2"
 	"github.com/ilyakaznacheev/cleanenv"
-	"github.com/jmoiron/sqlx"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/ozontech/allure-go/pkg/framework/provider"
 	"github.com/ozontech/allure-go/pkg/framework/suite"
 	"github.com/redis/go-redis/v9"
@@ -45,7 +43,7 @@ type ConfigTest struct {
 type ApiSuite struct {
 	suite.Suite
 	router           *gin.Engine
-	pgConnection     *sqlx.DB
+	pgConnection     *pgxpool.Pool
 	rdsClient        *redis.Client
 	bannerRepository banner.Repository
 	authService      auth.Usecase
@@ -65,13 +63,18 @@ func (as *ApiSuite) BeforeEach(t provider.T) {
 	l := &logger.EmptyLogger{}
 
 	t.NewStep("Проверка работы базы данных окружения")
-	as.pgConnection, err = sqlx.Open("pgx", cfg.Pg)
+	cfx, err := pgxpool.ParseConfig(cfg.Pg)
 	if err != nil {
-		t.Fatalf("error create postgres connection: %s", err)
+		l.Fatal("[App] Init - postgres.New: %s", err)
 	}
 
-	if err := as.pgConnection.Ping(); err != nil {
-		t.Fatalf("can't check connection to sql with error %s", err)
+	as.pgConnection, err = pgxpool.NewWithConfig(context.Background(), cfx)
+	if err != nil {
+		l.Fatal("[App] Init - postgres.New: %s", err)
+	}
+
+	if err = as.pgConnection.Ping(context.Background()); err != nil {
+		l.Fatal("[App] Init - can't check connection to sql with error %s", err)
 	}
 
 	t.NewStep("Проверка работы хранилища кэша окружения")
@@ -85,18 +88,10 @@ func (as *ApiSuite) BeforeEach(t provider.T) {
 		t.Fatalf("can't check connection to redis with error: %s", err)
 	}
 
-	cronScheduler, err := gocron.NewScheduler()
-	if err != nil {
-		t.Fatal(fmt.Errorf("start cronScheduler error: %s", err))
-	}
-
 	t.NewStep("Инициализация репозиториев")
 
 	// Repository
-	as.bannerRepository, err = bp.NewBannerRepository(as.pgConnection, cronScheduler, l)
-	if err != nil {
-		t.Fatal(fmt.Errorf("initialize BannerRepository error: %s", err))
-	}
+	as.bannerRepository = bp.NewBannerRepository(as.pgConnection)
 	cacheRepository := cr.NewCashRedis(as.rdsClient)
 
 	t.NewStep("Инициализация юзкейсов")
@@ -121,12 +116,12 @@ func (as *ApiSuite) BeforeEach(t provider.T) {
 }
 
 func (as *ApiSuite) AfterEach(t provider.T) {
-	_, err := as.pgConnection.Exec(`TRUNCATE banner CASCADE`)
+	_, err := as.pgConnection.Exec(context.Background(), `TRUNCATE banner CASCADE`)
 	t.Require().NoError(err)
 
 	t.Require().NoError(as.rdsClient.FlushAll(context.Background()).Err())
 
-	t.Require().NoError(as.pgConnection.Close())
+	as.pgConnection.Close()
 }
 
 const (

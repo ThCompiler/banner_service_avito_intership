@@ -6,4 +6,4 @@ scrape_configs:
   - job_name: main
     metrics_path: '/metrics'
     static_configs:
-      - targets: ['main:8080']
+      - targets: ['banner:8080']

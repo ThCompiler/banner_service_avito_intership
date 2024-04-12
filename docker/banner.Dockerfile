@@ -1,14 +1,15 @@
-FROM golang:latest as build
+FROM golang:1.22 as build
 WORKDIR /app
-
-COPY . .
 
 RUN go install github.com/swaggo/swag/cmd/swag@latest
 
-RUN make swag-gen
-RUN make build
+COPY . .
 
-FROM golang:latest as production
+RUN make swag-gen
+RUN make build-banner
+
+FROM golang:1.22 as production
+
 WORKDIR /app
 
 EXPOSE 8080
@@ -17,4 +18,6 @@ COPY --from=build /app/server .
 
 RUN mkdir app-log
 
-CMD ["./server"]
+ENV CONFIG_PATH /config.yaml
+
+ENTRYPOINT /app/server --config=$CONFIG_PATH

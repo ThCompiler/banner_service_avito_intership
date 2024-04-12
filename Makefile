@@ -23,9 +23,13 @@ down:
 
 # Сборка
 
-.PHONY: build
-build:
-	go build -o server -v ./cmd
+.PHONY: build-banner
+build-banner:
+	go build -o server -v ./cmd/banner
+
+.PHONY: build-cron
+build-cron:
+	go build -o service -v ./cmd/cron
 
 .PHONY: swag-gen
 swag-gen:
@@ -35,9 +39,16 @@ swag-gen:
 swag-fmt:
 	swag fmt -d $(SWAG_DIRS) -g ./swag_info.go
 
-.PHONY: build-docker
-build-docker:
-	sudo docker build --no-cache --network host -f ./Dockerfile . --tag main
+.PHONY: build-docker-banner
+build-docker-banner:
+	sudo docker build --no-cache --network host -f ./docker/banner.Dockerfile . --tag banner
+
+.PHONY: build-docker-cron
+build-docker-cron:
+	sudo docker build --no-cache --network host -f ./docker/cron.Dockerfile . --tag cron
+
+.PHONY: build-docker-all
+build-docker-all: build-docker-cron build-docker-banner
 
 # Тест интеграции
 

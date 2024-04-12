@@ -26,7 +26,7 @@ type Banner struct {
 
 type BannerUpdate struct {
 	Content   *types.NullableObject[json.RawMessage]
-	FeatureID *types.NullableObject[types.ID]
+	FeatureID *types.NullableID
 	TagIDs    *types.NullableObject[[]types.ID]
 	IsActive  *types.NullableObject[bool]
 }
