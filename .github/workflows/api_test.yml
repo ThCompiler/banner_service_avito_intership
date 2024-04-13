@@ -4,6 +4,9 @@ env:
   GO_VERSION: 1.22
   BIN_NAME: quests
 
+permissions:
+  contents: write
+
 on:
   push:
     branches:
