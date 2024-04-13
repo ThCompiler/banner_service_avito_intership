@@ -99,7 +99,7 @@ func initRoutes(mode config.Mode, dbs *databases, l logger.Interface) (*gin.Engi
 	authHandlers := ah.NewAuthHandlers(authService)
 
 	// routes
-	routes := prepareRoutes(bannerHandlers, cacheManager, authService, authHandlers)
+	routes := PrepareRoutes(bannerHandlers, cacheManager, authService, authHandlers)
 
 	return v1.NewRouter("/api", routes, mode, l, metricsManager)
 }

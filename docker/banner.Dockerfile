@@ -18,6 +18,8 @@ COPY --from=build /app/server .
 
 RUN mkdir app-log
 
+RUN chmod 777 app-log
+
 ENV CONFIG_PATH /config.yaml
 
 ENTRYPOINT /app/server --config=$CONFIG_PATH
