@@ -40,7 +40,7 @@ jobs:
       - name: Run tests
         run: |
           make run-environment-with-build
-          make run-api-tests
+          make run-api-test
           make down-environment
 
       - name: Load test report history
