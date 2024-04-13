@@ -136,7 +136,7 @@ const (
 )
 
 func (as *ApiSuite) TestGetUserBanner(t provider.T) {
-	t.Title("Тестирование апи метода GetUserBanner: /user_banner")
+	t.Title("Тестирование апи метода GetUserBanner: GET /user_banner")
 	t.NewStep("Инициализация тестовых данных")
 	const path = "/api/v1/user_banner"
 	const updatedContent = `{"title": "updated_banner", "width": 30}`
@@ -316,7 +316,7 @@ func (as *ApiSuite) TestGetUserBanner(t provider.T) {
 			End()
 	})
 
-	t.Run("Попытка передачи некорректных параметров запроса", func(t provider.T) {
+	t.Run("Попытка получения баннера с некорректными параметрами запроса", func(t provider.T) {
 		apitest.New().
 			Handler(as.router).
 			Get(path).
@@ -336,7 +336,7 @@ func (as *ApiSuite) TestGetUserBanner(t provider.T) {
 			End()
 	})
 
-	t.Run("Попытка передачи не всех параметров запроса", func(t provider.T) {
+	t.Run("Попытка получения баннера с передачей не всех параметров запроса", func(t provider.T) {
 		apitest.New().
 			Handler(as.router).
 			Get(path).
@@ -657,7 +657,7 @@ func (as *ApiSuite) TestUpdateBanner(t provider.T) {
 			End()
 	})
 
-	t.Run("Обновление баннера с одним из полей", func(t provider.T) {
+	t.Run("Успешное обновление баннера с одним из полей", func(t provider.T) {
 		t.NewStep("Инициализация тестовых данных")
 
 		bnr := &createBanner{
@@ -797,7 +797,7 @@ func (as *ApiSuite) TestUpdateBanner(t provider.T) {
 		})
 	})
 
-	t.Run("Обновление баннеров с сохранением только трёх последних версий", func(t provider.T) {
+	t.Run("Успешное обновление баннеров с сохранением только трёх последних версий", func(t provider.T) {
 		t.NewStep("Инициализация тестовых данных")
 
 		const (
@@ -904,7 +904,7 @@ func (as *ApiSuite) TestUpdateBanner(t provider.T) {
 
 	})
 
-	t.Run("Попытка обновить с неверным типом полей в теле запроса", func(t provider.T) {
+	t.Run("Попытка обновить баннер с неверным типом полей в теле запроса", func(t provider.T) {
 		t.NewStep("Инициализация тестовых данных")
 
 		bnr := &createBanner{
@@ -1089,7 +1089,7 @@ func (as *ApiSuite) TestDeleteBanner(t provider.T) {
 			End()
 	})
 
-	t.Run("Попытка создать баннер пользователя с неверными правами", func(t provider.T) {
+	t.Run("Попытка удалить баннер пользователя с неверными правами", func(t provider.T) {
 		t.NewStep("Тестирование")
 		apitest.New().
 			Handler(as.router).
@@ -1286,7 +1286,7 @@ func (as *ApiSuite) TestDeleteFilterBanner(t provider.T) {
 }
 
 func (as *ApiSuite) TestGetAdminBanner(t provider.T) {
-	t.Title("Тестирование апи метода GetAdminBanner: Get /banner")
+	t.Title("Тестирование апи метода GetAdminBanner: GET /banner")
 	const path = "/api/v1/banner"
 
 	t.Run("Успешное получение списка баннеров", func(t provider.T) {
@@ -1547,7 +1547,7 @@ func (as *ApiSuite) TestGetAdminBanner(t provider.T) {
 		t.Require().Len(bnrs, 0)
 	})
 
-	t.Run("Попытка удалить баннер с неверным типом параметра в строке запроса", func(t provider.T) {
+	t.Run("Попытка получить список баннеров с неверным типом параметра в строке запроса", func(t provider.T) {
 		t.NewStep("Тестирование неверного типа feature id")
 		apitest.New().
 			Handler(as.router).
@@ -1589,7 +1589,7 @@ func (as *ApiSuite) TestGetAdminBanner(t provider.T) {
 			End()
 	})
 
-	t.Run("Попытка удалить баннер неавторизованным пользователем", func(t provider.T) {
+	t.Run("Попытка получить список баннеров неавторизованным пользователем", func(t provider.T) {
 		t.NewStep("Тестирование")
 		apitest.New().
 			Handler(as.router).
@@ -1599,7 +1599,7 @@ func (as *ApiSuite) TestGetAdminBanner(t provider.T) {
 			End()
 	})
 
-	t.Run("Попытка удалить баннер пользователя с неверными правами", func(t provider.T) {
+	t.Run("Попытка получить список баннеров пользователя с неверными правами", func(t provider.T) {
 		t.NewStep("Тестирование")
 		apitest.New().
 			Handler(as.router).
