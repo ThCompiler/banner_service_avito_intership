@@ -96,7 +96,7 @@ const (
 	`
 
 	cronDeleteQuery = `
-		DELETE FROM banner WHERE id IN (SELECT DISTINCT banner_id FROM features_tags_banner WHERE not deleted)
+		DELETE FROM banner WHERE id IN (SELECT DISTINCT banner_id FROM features_tags_banner WHERE deleted)
 	`
 )
 

@@ -73,5 +73,5 @@ EXECUTE FUNCTION banner_insert_version_trigger();
 CREATE INDEX banner_feature on features_tags_banner (feature_id) WHERE not deleted;
 CREATE INDEX banner_tag on features_tags_banner (tag_id) WHERE not deleted;
 CREATE INDEX banner_feature_ids on features_tags_banner (banner_id) WHERE not deleted;
-CREATE INDEX version_banner_id ON version_banner(banner_id)
+CREATE INDEX version_banner_id ON version_banner(banner_id);
 CREATE INDEX feature_banner on features_tags_banner(banner_id, feature_id);

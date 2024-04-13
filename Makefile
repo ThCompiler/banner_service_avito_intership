@@ -5,12 +5,16 @@ export $(shell sed 's/=.*//' ./config/env/api_test.env)
 
 # Запуск
 
+.PHONY: create-nginx-logs
+create-nginx-logs:
+	mkdir -p logs-nginx
+
 .PHONY: run
-run:
+run: create-nginx-logs
 	sudo docker compose --env-file ./config/env/docker_run.env up -d
 
 .PHONY: run-verbose
-run-verbose:
+run-verbose: create-nginx-logs
 	sudo docker compose --env-file ./config/env/docker_run.env up
 
 .PHONY: stop
@@ -56,6 +60,10 @@ build-docker-all: build-docker-cron build-docker-banner
 
 # Тест интеграции
 
+.PHONY: run-environment-with-build
+run-environment-with-build: build-docker-cron
+	sudo docker compose -f ./docker-compose-api-test.yml up -d
+
 .PHONY: run-environment
 run-environment:
 	sudo docker compose -f ./docker-compose-api-test.yml up -d
@@ -65,14 +73,7 @@ down-environment:
 	sudo docker compose -f ./docker-compose-api-test.yml down
 
 .PHONY: run-api-test
-run-api-test: run-environment
-	sleep 5 # чтобы postgres успел инициализироваться
-	go test -tags=integration ./...
-	make down-environment
-
-.PHONY: run-api-test-with-build
-run-api-test-with-build: build-docker-cron run-environment
-	sleep 5 # чтобы postgres успел инициализироваться
+run-api-test:
 	go test -tags=integration ./...
 	make down-environment
 

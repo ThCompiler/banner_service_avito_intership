@@ -5,6 +5,8 @@ volumes:
 services:
   banner-bd-test:
     image: postgres:16
+    networks:
+      - default-test
     expose:
       - "5432"
     command: "postgres -c shared_preload_libraries='pg_stat_statements'"
@@ -28,7 +30,7 @@ services:
     networks:
       - default-test
     volumes:
-      - ./config/docker-config.yaml:/config.yaml
+      - ./config/api-test-config.yaml:/config.yaml
     environment:
       - CONFIG_PATH=/config.yaml
       - TASK_PERIOD=10
@@ -37,6 +39,8 @@ services:
     restart: on-failure
   chaches-test:
     image: "redis:alpine"
+    networks:
+      - default-test
     expose:
       - "6379"
     ports:

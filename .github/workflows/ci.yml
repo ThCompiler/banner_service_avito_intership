@@ -58,7 +58,7 @@ jobs:
           # Optional: version of golangci-lint to use in form of v1.2 or v1.2.3 or `latest` to use the latest version
           version: v1.57.2
   test:
-    needs: [vet, lint]
+    needs: [vet, lint, golangci-lint]
     runs-on: ubuntu-latest
     steps:
       - name: checkout
