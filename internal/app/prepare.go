@@ -63,7 +63,7 @@ func prepareLogger(cfg config.LoggerInfo) (*logger.Logger, *os.File) {
 	return l, logFile
 }
 
-func prepareRoutes(bannerHandlers *bh.BannerHandlers, cache caches.Manager,
+func PrepareRoutes(bannerHandlers *bh.BannerHandlers, cache caches.Manager,
 	tokenService token.Service, authHandlers *ah.AuthHandlers,
 ) v1.Routes {
 	return v1.Routes{
