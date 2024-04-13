@@ -11,6 +11,7 @@ import (
 	v1 "bannersrv/internal/app/delivery/http/v1"
 	"bannersrv/internal/banner"
 	bh "bannersrv/internal/banner/delivery/http/v1/handlers"
+	"bannersrv/internal/banner/delivery/http/v1/models/response"
 	"bannersrv/internal/banner/entity"
 	bp "bannersrv/internal/banner/repository/postgres"
 	bu "bannersrv/internal/banner/usecase"
@@ -24,9 +25,11 @@ import (
 	"fmt"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/ilyakaznacheev/cleanenv"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/ozontech/allure-go/pkg/framework/provider"
 	"github.com/ozontech/allure-go/pkg/framework/suite"
@@ -593,7 +596,7 @@ func (as *ApiSuite) TestUpdateBanner(t provider.T) {
 			IsActive:  true,
 		}
 
-		bannerId, err := as.bannerRepository.CreateBanner(25, []types.ID{10},
+		bannerID, err := as.bannerRepository.CreateBanner(25, []types.ID{10},
 			`{}`, true)
 		t.Require().NoError(err)
 
@@ -603,7 +606,7 @@ func (as *ApiSuite) TestUpdateBanner(t provider.T) {
 		t.NewStep("Тестирование")
 		apitest.New().
 			Handler(as.router).
-			Patchf("%s/%d", path, bannerId).
+			Patchf("%s/%d", path, bannerID).
 			Body(string(body)).
 			Header(middleware.TokenHeaderField, string(as.authService.GetAdminToken())).
 			Expect(t).
@@ -639,14 +642,14 @@ func (as *ApiSuite) TestUpdateBanner(t provider.T) {
 			types.Content(bnr.Content), bnr.IsActive)
 		t.Require().NoError(err)
 
-		bannerIdToUpdate, err := as.bannerRepository.CreateBanner(bnr.FeatureID+1, bnr.TagIDs,
+		bannerIDToUpdate, err := as.bannerRepository.CreateBanner(bnr.FeatureID+1, bnr.TagIDs,
 			types.Content(bnr.Content), bnr.IsActive)
 		t.Require().NoError(err)
 
 		t.NewStep("Тестирование")
 		apitest.New().
 			Handler(as.router).
-			Patchf("%s/%d", path, bannerIdToUpdate).
+			Patchf("%s/%d", path, bannerIDToUpdate).
 			Body(string(body)).
 			Header(middleware.TokenHeaderField, string(as.authService.GetAdminToken())).
 			Expect(t).
@@ -664,7 +667,7 @@ func (as *ApiSuite) TestUpdateBanner(t provider.T) {
 			IsActive:  true,
 		}
 
-		bannerId, err := as.bannerRepository.CreateBanner(bnr.FeatureID, bnr.TagIDs,
+		bannerID, err := as.bannerRepository.CreateBanner(bnr.FeatureID, bnr.TagIDs,
 			types.Content(bnr.Content), bnr.IsActive)
 		t.Require().NoError(err)
 
@@ -672,7 +675,7 @@ func (as *ApiSuite) TestUpdateBanner(t provider.T) {
 			t.NewStep("Тестирование")
 			apitest.New().
 				Handler(as.router).
-				Patchf("%s/%d", path, bannerId).
+				Patchf("%s/%d", path, bannerID).
 				Body(
 					`
 					{
@@ -703,7 +706,7 @@ func (as *ApiSuite) TestUpdateBanner(t provider.T) {
 			t.NewStep("Тестирование")
 			apitest.New().
 				Handler(as.router).
-				Patchf("%s/%d", path, bannerId).
+				Patchf("%s/%d", path, bannerID).
 				Body(
 					`
 					{
@@ -734,7 +737,7 @@ func (as *ApiSuite) TestUpdateBanner(t provider.T) {
 			t.NewStep("Тестирование")
 			apitest.New().
 				Handler(as.router).
-				Patchf("%s/%d", path, bannerId).
+				Patchf("%s/%d", path, bannerID).
 				Body(
 					`
 					{
@@ -765,7 +768,7 @@ func (as *ApiSuite) TestUpdateBanner(t provider.T) {
 			t.NewStep("Тестирование")
 			apitest.New().
 				Handler(as.router).
-				Patchf("%s/%d", path, bannerId).
+				Patchf("%s/%d", path, bannerID).
 				Body(
 					`
 					{
@@ -811,7 +814,7 @@ func (as *ApiSuite) TestUpdateBanner(t provider.T) {
 			IsActive:  true,
 		}
 
-		bannerId, err := as.bannerRepository.CreateBanner(bnr.FeatureID, bnr.TagIDs,
+		bannerID, err := as.bannerRepository.CreateBanner(bnr.FeatureID, bnr.TagIDs,
 			types.Content(bnr.Content), bnr.IsActive)
 		t.Require().NoError(err)
 
@@ -819,7 +822,7 @@ func (as *ApiSuite) TestUpdateBanner(t provider.T) {
 			t.NewStep("Добавление второй версии")
 			apitest.New().
 				Handler(as.router).
-				Patchf("%s/%d", path, bannerId).
+				Patchf("%s/%d", path, bannerID).
 				Body(
 					`
 					{
@@ -845,7 +848,7 @@ func (as *ApiSuite) TestUpdateBanner(t provider.T) {
 			t.NewStep("Добавление третьей версии")
 			apitest.New().
 				Handler(as.router).
-				Patchf("%s/%d", path, bannerId).
+				Patchf("%s/%d", path, bannerID).
 				Body(
 					`
 					{
@@ -872,7 +875,7 @@ func (as *ApiSuite) TestUpdateBanner(t provider.T) {
 			t.NewStep("Добавление четвёртой версии")
 			apitest.New().
 				Handler(as.router).
-				Patchf("%s/%d", path, bannerId).
+				Patchf("%s/%d", path, bannerID).
 				Body(
 					`
 					{
@@ -911,14 +914,14 @@ func (as *ApiSuite) TestUpdateBanner(t provider.T) {
 			IsActive:  true,
 		}
 
-		bannerId, err := as.bannerRepository.CreateBanner(bnr.FeatureID, bnr.TagIDs,
+		bannerID, err := as.bannerRepository.CreateBanner(bnr.FeatureID, bnr.TagIDs,
 			types.Content(bnr.Content), bnr.IsActive)
 		t.Require().NoError(err)
 
 		t.NewStep("Тестирование")
 		apitest.New().
 			Handler(as.router).
-			Patchf("%s/%d", path, bannerId).
+			Patchf("%s/%d", path, bannerID).
 			Body(
 				`
 					{
@@ -936,6 +939,17 @@ func (as *ApiSuite) TestUpdateBanner(t provider.T) {
 			End()
 	})
 
+	t.Run("Попытка обновить баннер с неверным типом параметра в строке запроса", func(t provider.T) {
+		t.NewStep("Тестирование")
+		apitest.New().
+			Handler(as.router).
+			Patchf("%s/more", path).
+			Header(middleware.TokenHeaderField, string(as.authService.GetAdminToken())).
+			Expect(t).
+			Status(http.StatusBadRequest).
+			End()
+	})
+
 	t.Run("Попытка обновить баннер неавторизованным пользователем", func(t provider.T) {
 		t.NewStep("Инициализация тестовых данных")
 
@@ -946,14 +960,14 @@ func (as *ApiSuite) TestUpdateBanner(t provider.T) {
 			IsActive:  true,
 		}
 
-		bannerId, err := as.bannerRepository.CreateBanner(bnr.FeatureID, bnr.TagIDs,
+		bannerID, err := as.bannerRepository.CreateBanner(bnr.FeatureID, bnr.TagIDs,
 			types.Content(bnr.Content), bnr.IsActive)
 		t.Require().NoError(err)
 
 		t.NewStep("Тестирование")
 		apitest.New().
 			Handler(as.router).
-			Patchf("%s/%d", path, bannerId).
+			Patchf("%s/%d", path, bannerID).
 			Body(
 				`
 					{
@@ -980,14 +994,14 @@ func (as *ApiSuite) TestUpdateBanner(t provider.T) {
 			IsActive:  true,
 		}
 
-		bannerId, err := as.bannerRepository.CreateBanner(bnr.FeatureID, bnr.TagIDs,
+		bannerID, err := as.bannerRepository.CreateBanner(bnr.FeatureID, bnr.TagIDs,
 			types.Content(bnr.Content), bnr.IsActive)
 		t.Require().NoError(err)
 
 		t.NewStep("Тестирование")
 		apitest.New().
 			Handler(as.router).
-			Patchf("%s/%d", path, bannerId).
+			Patchf("%s/%d", path, bannerID).
 			Body(
 				`
 					{
@@ -999,6 +1013,597 @@ func (as *ApiSuite) TestUpdateBanner(t provider.T) {
 						  ]
 					}
 				`).
+			Header(middleware.TokenHeaderField, string(as.authService.GetUserToken())).
+			Expect(t).
+			Status(http.StatusForbidden).
+			End()
+	})
+}
+
+func (as *ApiSuite) checkDeleted(bannerID types.ID) error {
+	id := 0
+	return as.pgConnection.
+		QueryRow(context.Background(), "SELECT banner_id FROM features_tags_banner WHERE banner_id = $1", bannerID).
+		Scan(&id)
+}
+
+func (as *ApiSuite) TestDeleteBanner(t provider.T) {
+	t.Title("Тестирование апи метода DeleteBanner: DELETE /banner")
+	const path = "/api/v1/banner"
+
+	t.Run("Успешное удаление баннера", func(t provider.T) {
+		t.NewStep("Инициализация тестовых данных")
+		bnr := &createBanner{
+			Content:   json.RawMessage(`{"title": "banner", "width": 30}`),
+			FeatureID: 1,
+			TagIDs:    []types.ID{2, 4, 3},
+			IsActive:  true,
+		}
+		bannerID, err := as.bannerRepository.CreateBanner(bnr.FeatureID, bnr.TagIDs,
+			types.Content(bnr.Content), bnr.IsActive)
+		t.Require().NoError(err)
+
+		t.NewStep("Тестирование")
+		apitest.New().
+			Handler(as.router).
+			Deletef("%s/%d", path, bannerID).
+			Header(middleware.TokenHeaderField, string(as.authService.GetAdminToken())).
+			Expect(t).
+			Status(http.StatusNoContent).
+			End()
+
+		t.NewStep("Проверка результатов")
+
+		t.Require().ErrorIs(as.checkDeleted(bannerID), pgx.ErrNoRows)
+	})
+
+	t.Run("Попытка удалить не существующий баннер", func(t provider.T) {
+		t.NewStep("Тестирование")
+		apitest.New().
+			Handler(as.router).
+			Deletef("%s/100", path).
+			Header(middleware.TokenHeaderField, string(as.authService.GetAdminToken())).
+			Expect(t).
+			Status(http.StatusNotFound).
+			End()
+	})
+
+	t.Run("Попытка удалить баннер с неверным типом параметра в строке запроса", func(t provider.T) {
+		t.NewStep("Тестирование")
+		apitest.New().
+			Handler(as.router).
+			Deletef("%s/more", path).
+			Header(middleware.TokenHeaderField, string(as.authService.GetAdminToken())).
+			Expect(t).
+			Status(http.StatusBadRequest).
+			End()
+	})
+
+	t.Run("Попытка удалить баннер неавторизованным пользователем", func(t provider.T) {
+		t.NewStep("Тестирование")
+		apitest.New().
+			Handler(as.router).
+			Deletef("%s/%d", path, 2).
+			Expect(t).
+			Status(http.StatusUnauthorized).
+			End()
+	})
+
+	t.Run("Попытка создать баннер пользователя с неверными правами", func(t provider.T) {
+		t.NewStep("Тестирование")
+		apitest.New().
+			Handler(as.router).
+			Deletef("%s/%d", path, 2).
+			Header(middleware.TokenHeaderField, string(as.authService.GetUserToken())).
+			Expect(t).
+			Status(http.StatusForbidden).
+			End()
+	})
+}
+
+const timeWaitCron = 50
+
+func (as *ApiSuite) TestDeleteFilterBanner(t provider.T) {
+	t.Title("Тестирование апи метода DeleteFilterBanner: DELETE /filter_banner")
+	const path = "/api/v1/filter_banner"
+
+	t.Run("Успешное удаление баннера", func(t provider.T) {
+		t.NewStep("Инициализация тестовых данных")
+		bnr := &createBanner{
+			Content:   json.RawMessage(`{"title": "banner", "width": 30}`),
+			FeatureID: 1,
+			TagIDs:    []types.ID{2, 4, 3},
+			IsActive:  true,
+		}
+		bannerID, err := as.bannerRepository.CreateBanner(bnr.FeatureID, bnr.TagIDs,
+			types.Content(bnr.Content), bnr.IsActive)
+		t.Require().NoError(err)
+
+		t.NewStep("Тестирование")
+		apitest.New().
+			Handler(as.router).
+			Delete(path).
+			Query(bh.FeatureIDParam, "1").Query(bh.TagIDParam, "2").
+			Header(middleware.TokenHeaderField, string(as.authService.GetAdminToken())).
+			Expect(t).
+			Status(http.StatusNoContent).
+			End()
+
+		t.NewStep("Проверка результатов")
+
+		<-time.After(timeWaitCron * time.Millisecond)
+
+		t.Require().ErrorIs(as.checkDeleted(bannerID), pgx.ErrNoRows)
+	})
+
+	t.Run("Успешное удаление баннера по фиче", func(t provider.T) {
+		t.NewStep("Инициализация тестовых данных")
+		firstBnr := &createBanner{
+			Content:   json.RawMessage(`{"title": "banner", "width": 30}`),
+			FeatureID: 25,
+			TagIDs:    []types.ID{10, 25},
+			IsActive:  true,
+		}
+		secondBnr := &createBanner{
+			Content:   json.RawMessage(`{"title": "banner", "width": 30}`),
+			FeatureID: 25,
+			TagIDs:    []types.ID{30, 40},
+			IsActive:  true,
+		}
+
+		firstBannerID, err := as.bannerRepository.CreateBanner(firstBnr.FeatureID, firstBnr.TagIDs,
+			types.Content(firstBnr.Content), firstBnr.IsActive)
+		t.Require().NoError(err)
+
+		secondBannerID, err := as.bannerRepository.CreateBanner(secondBnr.FeatureID, secondBnr.TagIDs,
+			types.Content(secondBnr.Content), secondBnr.IsActive)
+		t.Require().NoError(err)
+
+		t.NewStep("Тестирование")
+		apitest.New().
+			Handler(as.router).
+			Delete(path).
+			Query(bh.FeatureIDParam, "25").
+			Header(middleware.TokenHeaderField, string(as.authService.GetAdminToken())).
+			Expect(t).
+			Status(http.StatusNoContent).
+			End()
+
+		t.NewStep("Проверка результатов")
+
+		<-time.After(timeWaitCron * time.Millisecond)
+
+		t.Require().ErrorIs(as.checkDeleted(firstBannerID), pgx.ErrNoRows)
+		t.Require().ErrorIs(as.checkDeleted(secondBannerID), pgx.ErrNoRows)
+	})
+
+	t.Run("Успешное удаление баннера по тэгу", func(t provider.T) {
+		t.NewStep("Инициализация тестовых данных")
+		firstBnr := &createBanner{
+			Content:   json.RawMessage(`{"title": "banner", "width": 30}`),
+			FeatureID: 26,
+			TagIDs:    []types.ID{45, 25},
+			IsActive:  true,
+		}
+		secondBnr := &createBanner{
+			Content:   json.RawMessage(`{"title": "banner", "width": 30}`),
+			FeatureID: 27,
+			TagIDs:    []types.ID{30, 45},
+			IsActive:  true,
+		}
+
+		firstBannerID, err := as.bannerRepository.CreateBanner(firstBnr.FeatureID, firstBnr.TagIDs,
+			types.Content(firstBnr.Content), firstBnr.IsActive)
+		t.Require().NoError(err)
+
+		secondBannerID, err := as.bannerRepository.CreateBanner(secondBnr.FeatureID, secondBnr.TagIDs,
+			types.Content(secondBnr.Content), secondBnr.IsActive)
+		t.Require().NoError(err)
+
+		t.NewStep("Тестирование")
+		apitest.New().
+			Handler(as.router).
+			Delete(path).
+			Query(bh.TagIDParam, "45").
+			Header(middleware.TokenHeaderField, string(as.authService.GetAdminToken())).
+			Expect(t).
+			Status(http.StatusNoContent).
+			End()
+
+		t.NewStep("Проверка результатов")
+
+		<-time.After(timeWaitCron * time.Millisecond)
+
+		t.Require().ErrorIs(as.checkDeleted(firstBannerID), pgx.ErrNoRows)
+		t.Require().ErrorIs(as.checkDeleted(secondBannerID), pgx.ErrNoRows)
+	})
+
+	t.Run("Попытка удалить не существующий баннер", func(t provider.T) {
+		t.NewStep("Тестирование")
+		apitest.New().
+			Handler(as.router).
+			Delete(path).
+			Query(bh.FeatureIDParam, "100").Query(bh.TagIDParam, "2").
+			Header(middleware.TokenHeaderField, string(as.authService.GetAdminToken())).
+			Expect(t).
+			Status(http.StatusNotFound).
+			End()
+	})
+
+	t.Run("Попытка удалить баннер без параметров запроса", func(t provider.T) {
+		t.NewStep("Тестирование")
+		apitest.New().
+			Handler(as.router).
+			Delete(path).
+			Header(middleware.TokenHeaderField, string(as.authService.GetAdminToken())).
+			Expect(t).
+			Status(http.StatusBadRequest).
+			End()
+	})
+
+	t.Run("Попытка удалить баннер с неверным типом параметра в строке запроса", func(t provider.T) {
+		t.NewStep("Тестирование неверного типа feature id")
+		apitest.New().
+			Handler(as.router).
+			Delete(path).
+			Query(bh.FeatureIDParam, "mir").Query(bh.TagIDParam, "2").
+			Header(middleware.TokenHeaderField, string(as.authService.GetAdminToken())).
+			Expect(t).
+			Status(http.StatusBadRequest).
+			End()
+
+		t.NewStep("Тестирование неверного типа tag id")
+		apitest.New().
+			Handler(as.router).
+			Delete(path).
+			Query(bh.FeatureIDParam, "2").Query(bh.TagIDParam, "mir").
+			Header(middleware.TokenHeaderField, string(as.authService.GetAdminToken())).
+			Expect(t).
+			Status(http.StatusBadRequest).
+			End()
+	})
+
+	t.Run("Попытка удалить баннер неавторизованным пользователем", func(t provider.T) {
+		t.NewStep("Тестирование")
+		apitest.New().
+			Handler(as.router).
+			Delete(path).
+			Expect(t).
+			Status(http.StatusUnauthorized).
+			End()
+	})
+
+	t.Run("Попытка удалить баннер пользователя с неверными правами", func(t provider.T) {
+		t.NewStep("Тестирование")
+		apitest.New().
+			Handler(as.router).
+			Delete(path).
+			Header(middleware.TokenHeaderField, string(as.authService.GetUserToken())).
+			Expect(t).
+			Status(http.StatusForbidden).
+			End()
+	})
+}
+
+func (as *ApiSuite) TestGetAdminBanner(t provider.T) {
+	t.Title("Тестирование апи метода GetAdminBanner: Get /banner")
+	const path = "/api/v1/banner"
+
+	t.Run("Успешное получение списка баннеров", func(t provider.T) {
+		t.NewStep("Инициализация тестовых данных")
+		bnr := &createBanner{
+			Content:   json.RawMessage(`{"title":"banner","width":30}`),
+			FeatureID: 1,
+			TagIDs:    []types.ID{2, 4, 3},
+			IsActive:  true,
+		}
+		bannerID, err := as.bannerRepository.CreateBanner(bnr.FeatureID, bnr.TagIDs,
+			types.Content(bnr.Content), bnr.IsActive)
+		t.Require().NoError(err)
+
+		t.NewStep("Тестирование")
+		resp := apitest.New().
+			Handler(as.router).
+			Get(path).
+			Query(bh.FeatureIDParam, "1").Query(bh.TagIDParam, "2").
+			Header(middleware.TokenHeaderField, string(as.authService.GetAdminToken())).
+			Expect(t).
+			Status(http.StatusOK).
+			End()
+
+		t.NewStep("Проверка результатов")
+		var bnrs []response.Banner
+
+		resp.JSON(&bnrs)
+
+		t.Require().Len(bnrs, 1)
+		t.Require().EqualValues(bnrs[0].ID, bannerID)
+		t.Require().Len(bnrs[0].Versions, 1)
+		t.Require().EqualValues(bnr.Content, bnrs[0].Versions[0].Content)
+	})
+
+	t.Run("Успешное получение списка баннеров по фиче", func(t provider.T) {
+		t.NewStep("Инициализация тестовых данных")
+		firstBnr := &createBanner{
+			Content:   json.RawMessage(`{"title":"banner","width":30}`),
+			FeatureID: 25,
+			TagIDs:    []types.ID{10, 25},
+			IsActive:  true,
+		}
+		secondBnr := &createBanner{
+			Content:   json.RawMessage(`{"title":"banner","width":30}`),
+			FeatureID: 25,
+			TagIDs:    []types.ID{30, 40},
+			IsActive:  true,
+		}
+
+		firstBannerID, err := as.bannerRepository.CreateBanner(firstBnr.FeatureID, firstBnr.TagIDs,
+			types.Content(firstBnr.Content), firstBnr.IsActive)
+		t.Require().NoError(err)
+
+		secondBannerID, err := as.bannerRepository.CreateBanner(secondBnr.FeatureID, secondBnr.TagIDs,
+			types.Content(secondBnr.Content), secondBnr.IsActive)
+		t.Require().NoError(err)
+
+		t.NewStep("Тестирование")
+		resp := apitest.New().
+			Handler(as.router).
+			Get(path).
+			Query(bh.FeatureIDParam, "25").
+			Header(middleware.TokenHeaderField, string(as.authService.GetAdminToken())).
+			Expect(t).
+			Status(http.StatusOK).
+			End()
+
+		t.NewStep("Проверка результатов")
+		var bnrs []response.Banner
+
+		resp.JSON(&bnrs)
+
+		t.Require().Len(bnrs, 2)
+		t.Require().EqualValues(bnrs[0].ID, firstBannerID)
+		t.Require().Len(bnrs[0].Versions, 1)
+		t.Require().EqualValues(firstBnr.Content, bnrs[0].Versions[0].Content)
+
+		t.Require().EqualValues(bnrs[1].ID, secondBannerID)
+		t.Require().Len(bnrs[1].Versions, 1)
+		t.Require().EqualValues(secondBnr.Content, bnrs[1].Versions[0].Content)
+	})
+
+	t.Run("Успешное получение списка баннеров по тэгу", func(t provider.T) {
+		t.NewStep("Инициализация тестовых данных")
+		firstBnr := &createBanner{
+			Content:   json.RawMessage(`{"title":"banner","width":30}`),
+			FeatureID: 26,
+			TagIDs:    []types.ID{45, 25},
+			IsActive:  true,
+		}
+		secondBnr := &createBanner{
+			Content:   json.RawMessage(`{"title":"banner","width":30}`),
+			FeatureID: 27,
+			TagIDs:    []types.ID{30, 45},
+			IsActive:  true,
+		}
+
+		firstBannerID, err := as.bannerRepository.CreateBanner(firstBnr.FeatureID, firstBnr.TagIDs,
+			types.Content(firstBnr.Content), firstBnr.IsActive)
+		t.Require().NoError(err)
+
+		secondBannerID, err := as.bannerRepository.CreateBanner(secondBnr.FeatureID, secondBnr.TagIDs,
+			types.Content(secondBnr.Content), secondBnr.IsActive)
+		t.Require().NoError(err)
+
+		t.NewStep("Тестирование")
+		resp := apitest.New().
+			Handler(as.router).
+			Get(path).
+			Query(bh.TagIDParam, "45").
+			Header(middleware.TokenHeaderField, string(as.authService.GetAdminToken())).
+			Expect(t).
+			Status(http.StatusOK).
+			End()
+
+		t.NewStep("Проверка результатов")
+		var bnrs []response.Banner
+
+		resp.JSON(&bnrs)
+
+		t.Require().Len(bnrs, 2)
+		t.Require().EqualValues(bnrs[0].ID, firstBannerID)
+		t.Require().Len(bnrs[0].Versions, 1)
+		t.Require().EqualValues(firstBnr.Content, bnrs[0].Versions[0].Content)
+
+		t.Require().EqualValues(bnrs[1].ID, secondBannerID)
+		t.Require().Len(bnrs[1].Versions, 1)
+		t.Require().EqualValues(secondBnr.Content, bnrs[1].Versions[0].Content)
+	})
+
+	t.Run("Успешное получение ограниченного списка баннеров по числу", func(t provider.T) {
+		t.NewStep("Инициализация тестовых данных")
+		firstBnr := &createBanner{
+			Content:   json.RawMessage(`{"title":"banner","width":30}`),
+			FeatureID: 31,
+			TagIDs:    []types.ID{45, 25},
+			IsActive:  true,
+		}
+		secondBnr := &createBanner{
+			Content:   json.RawMessage(`{"title":"banner","width":30}`),
+			FeatureID: 31,
+			TagIDs:    []types.ID{30, 24},
+			IsActive:  true,
+		}
+
+		firstBannerID, err := as.bannerRepository.CreateBanner(firstBnr.FeatureID, firstBnr.TagIDs,
+			types.Content(firstBnr.Content), firstBnr.IsActive)
+		t.Require().NoError(err)
+
+		_, err = as.bannerRepository.CreateBanner(secondBnr.FeatureID, secondBnr.TagIDs,
+			types.Content(secondBnr.Content), secondBnr.IsActive)
+		t.Require().NoError(err)
+
+		t.NewStep("Тестирование")
+		resp := apitest.New().
+			Handler(as.router).
+			Get(path).
+			Query(bh.FeatureIDParam, "31").Query(bh.LimitParam, "1").
+			Header(middleware.TokenHeaderField, string(as.authService.GetAdminToken())).
+			Expect(t).
+			Status(http.StatusOK).
+			End()
+
+		t.NewStep("Проверка результатов")
+		var bnrs []response.Banner
+
+		resp.JSON(&bnrs)
+
+		t.Require().Len(bnrs, 1)
+		t.Require().EqualValues(bnrs[0].ID, firstBannerID)
+		t.Require().Len(bnrs[0].Versions, 1)
+		t.Require().EqualValues(firstBnr.Content, bnrs[0].Versions[0].Content)
+	})
+
+	t.Run("Успешное получение смещённого списка баннеров", func(t provider.T) {
+		t.NewStep("Инициализация тестовых данных")
+		firstBnr := &createBanner{
+			Content:   json.RawMessage(`{"title":"banner","width":30}`),
+			FeatureID: 32,
+			TagIDs:    []types.ID{45, 25},
+			IsActive:  true,
+		}
+		secondBnr := &createBanner{
+			Content:   json.RawMessage(`{"title":"banner","width":30}`),
+			FeatureID: 32,
+			TagIDs:    []types.ID{30, 24},
+			IsActive:  true,
+		}
+
+		_, err := as.bannerRepository.CreateBanner(firstBnr.FeatureID, firstBnr.TagIDs,
+			types.Content(firstBnr.Content), firstBnr.IsActive)
+		t.Require().NoError(err)
+
+		secondBannerID, err := as.bannerRepository.CreateBanner(secondBnr.FeatureID, secondBnr.TagIDs,
+			types.Content(secondBnr.Content), secondBnr.IsActive)
+		t.Require().NoError(err)
+
+		t.NewStep("Тестирование")
+		resp := apitest.New().
+			Handler(as.router).
+			Get(path).
+			Query(bh.FeatureIDParam, "32").Query(bh.OffsetParam, "1").
+			Header(middleware.TokenHeaderField, string(as.authService.GetAdminToken())).
+			Expect(t).
+			Status(http.StatusOK).
+			End()
+
+		t.NewStep("Проверка результатов")
+		var bnrs []response.Banner
+
+		resp.JSON(&bnrs)
+
+		t.Require().Len(bnrs, 1)
+		t.Require().EqualValues(bnrs[0].ID, secondBannerID)
+		t.Require().Len(bnrs[0].Versions, 1)
+		t.Require().EqualValues(firstBnr.Content, bnrs[0].Versions[0].Content)
+	})
+
+	t.Run("Успешное получение списка баннеров при фильтре запрашивающем несуществующий баннер", func(t provider.T) {
+		t.NewStep("Инициализация тестовых данных")
+		firstBnr := &createBanner{
+			Content:   json.RawMessage(`{"title":"banner","width":30}`),
+			FeatureID: 47,
+			TagIDs:    []types.ID{46, 13},
+			IsActive:  true,
+		}
+		secondBnr := &createBanner{
+			Content:   json.RawMessage(`{"title":"banner","width":30}`),
+			FeatureID: 98,
+			TagIDs:    []types.ID{23, 46},
+			IsActive:  true,
+		}
+
+		_, err := as.bannerRepository.CreateBanner(firstBnr.FeatureID, firstBnr.TagIDs,
+			types.Content(firstBnr.Content), firstBnr.IsActive)
+		t.Require().NoError(err)
+
+		_, err = as.bannerRepository.CreateBanner(secondBnr.FeatureID, secondBnr.TagIDs,
+			types.Content(secondBnr.Content), secondBnr.IsActive)
+		t.Require().NoError(err)
+
+		t.NewStep("Тестирование")
+		resp := apitest.New().
+			Handler(as.router).
+			Get(path).
+			Query(bh.FeatureIDParam, "100").Query(bh.TagIDParam, "2").
+			Header(middleware.TokenHeaderField, string(as.authService.GetAdminToken())).
+			Expect(t).
+			Status(http.StatusOK).
+			End()
+
+		t.NewStep("Проверка результатов")
+		var bnrs []response.Banner
+
+		resp.JSON(&bnrs)
+
+		t.Require().Len(bnrs, 0)
+	})
+
+	t.Run("Попытка удалить баннер с неверным типом параметра в строке запроса", func(t provider.T) {
+		t.NewStep("Тестирование неверного типа feature id")
+		apitest.New().
+			Handler(as.router).
+			Get(path).
+			Query(bh.FeatureIDParam, "mir").
+			Header(middleware.TokenHeaderField, string(as.authService.GetAdminToken())).
+			Expect(t).
+			Status(http.StatusBadRequest).
+			End()
+
+		t.NewStep("Тестирование неверного типа tag id")
+		apitest.New().
+			Handler(as.router).
+			Get(path).
+			Query(bh.TagIDParam, "mir").
+			Header(middleware.TokenHeaderField, string(as.authService.GetAdminToken())).
+			Expect(t).
+			Status(http.StatusBadRequest).
+			End()
+
+		t.NewStep("Тестирование неверного типа limit")
+		apitest.New().
+			Handler(as.router).
+			Get(path).
+			Query(bh.LimitParam, "mir").
+			Header(middleware.TokenHeaderField, string(as.authService.GetAdminToken())).
+			Expect(t).
+			Status(http.StatusBadRequest).
+			End()
+
+		t.NewStep("Тестирование неверного типа offset")
+		apitest.New().
+			Handler(as.router).
+			Get(path).
+			Query(bh.OffsetParam, "mir").
+			Header(middleware.TokenHeaderField, string(as.authService.GetAdminToken())).
+			Expect(t).
+			Status(http.StatusBadRequest).
+			End()
+	})
+
+	t.Run("Попытка удалить баннер неавторизованным пользователем", func(t provider.T) {
+		t.NewStep("Тестирование")
+		apitest.New().
+			Handler(as.router).
+			Get(path).
+			Expect(t).
+			Status(http.StatusUnauthorized).
+			End()
+	})
+
+	t.Run("Попытка удалить баннер пользователя с неверными правами", func(t provider.T) {
+		t.NewStep("Тестирование")
+		apitest.New().
+			Handler(as.router).
+			Get(path).
 			Header(middleware.TokenHeaderField, string(as.authService.GetUserToken())).
 			Expect(t).
 			Status(http.StatusForbidden).

@@ -42,7 +42,7 @@ services:
       - ./config/docker-config.yaml:/config.yaml
     environment:
       - CONFIG_PATH=/config.yaml
-      - TASK_PERIOD=18000
+      - TASK_PERIOD=1800000
     depends_on:
       - banner-bd
     restart: on-failure

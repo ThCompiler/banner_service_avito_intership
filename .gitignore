@@ -23,7 +23,7 @@ go.work
 
 app-log
 logs
-allure-results/
+internal/app/allure-results/
 logs*
 
 loadtest/info*.json

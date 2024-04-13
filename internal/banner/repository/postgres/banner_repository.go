@@ -91,8 +91,11 @@ const (
 
 	delayedDeletionQuery = `
 		UPDATE features_tags_banner SET deleted = true 
-			 WHERE (CASE WHEN $1::bigint IS NOT NULL THEN feature_id = $1 ELSE true END)
+			 WHERE banner_id in (
+			     SELECT banner_id FROM features_tags_banner
+				 WHERE (CASE WHEN $1::bigint IS NOT NULL THEN feature_id = $1 ELSE true END)
 					and (CASE WHEN $2::bigint IS NOT NULL THEN tag_id = $2 ELSE true END) 
+			 ) 
 	`
 
 	cronDeleteQuery = `

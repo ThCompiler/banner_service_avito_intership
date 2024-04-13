@@ -25,8 +25,8 @@ const (
 	TagIDParam     = "tag_id"
 	FeatureIDParam = "feature_id"
 	VersionParam   = "version"
-	limitParam     = "limit"
-	offsetParam    = "offset"
+	LimitParam     = "limit"
+	OffsetParam    = "offset"
 )
 
 type BannerHandlers struct {
@@ -296,14 +296,14 @@ func (bh *BannerHandlers) GetAdminBanner(c *gin.Context) {
 		return
 	}
 
-	limit, err := tools.ParseQueryParamToUint64(c, limitParam, nil, ErrorLimitIncorrectType, l)
+	limit, err := tools.ParseQueryParamToUint64(c, LimitParam, nil, ErrorLimitIncorrectType, l)
 	if err != nil {
 		tools.SendError(c, err, http.StatusBadRequest, l)
 
 		return
 	}
 
-	offset, err := tools.ParseQueryParamToUint64(c, offsetParam, nil, ErrorOffsetIncorrectType, l)
+	offset, err := tools.ParseQueryParamToUint64(c, OffsetParam, nil, ErrorOffsetIncorrectType, l)
 	if err != nil {
 		tools.SendError(c, err, http.StatusBadRequest, l)
 

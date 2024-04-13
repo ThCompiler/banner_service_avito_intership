@@ -20,7 +20,7 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
-const defaultTaskPeriod = 18000
+const defaultTaskPeriod = 1800000
 
 func main() { // nolint: revive // this a small executable file and big length of function is possible
 	var configPath string
@@ -28,7 +28,7 @@ func main() { // nolint: revive // this a small executable file and big length o
 	var period uint64
 
 	flag.StringVar(&configPath, "config", "./config/localhost-config.yaml", "path to config file")
-	flag.Uint64Var(&period, "period", defaultTaskPeriod, "task start period in seconds")
+	flag.Uint64Var(&period, "period", defaultTaskPeriod, "task start period in milliseconds")
 	flag.Parse()
 
 	l := log.New(os.Stderr, "cron-service", log.LUTC)
@@ -70,7 +70,7 @@ func main() { // nolint: revive // this a small executable file and big length o
 	bannerRepository := bp.NewBannerRepository(pg)
 
 	if _, err = cronScheduler.NewJob(
-		gocron.DurationJob(time.Duration(period)*time.Second),
+		gocron.DurationJob(time.Duration(period)*time.Millisecond),
 		gocron.NewTask(
 			func(rep banner.Repository, l *log.Logger) {
 				if err := rep.CleanDeletedBanner(); err != nil {

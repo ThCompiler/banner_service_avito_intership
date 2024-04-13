@@ -75,7 +75,6 @@ down-environment:
 .PHONY: run-api-test
 run-api-test:
 	go test -tags=integration ./...
-	make down-environment
 
 # Дополнительно
 
