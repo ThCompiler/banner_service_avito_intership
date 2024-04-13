@@ -11,8 +11,6 @@ on:
   push:
     branches:
       - main
-      - api-test-ci
-      - dev/*/main
   pull_request:
     branches:
       - main
