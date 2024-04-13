@@ -39,7 +39,7 @@ jobs:
 
       - name: Run tests
         run: |
-          make run-environment
+          make run-environment-with-build
           make run-api-tests
           make down-environment
 
