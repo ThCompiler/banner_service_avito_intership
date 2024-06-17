@@ -1,0 +1,234 @@
+# Options for analysis running.
+run:
+  # Timeout for analysis, e.g. 30s, 5m.
+  # Default: 1m
+  timeout: 10m
+  # Exit code when at least one issue was found.
+  # Default: 1
+  issues-exit-code: 2
+  # Include test files or not.
+  # Default: true
+  tests: false
+  modules-download-mode: readonly
+  allow-parallel-runners: true
+  go: '1.22'
+issues:
+  exclude-dirs:
+    - docs
+    - loadtest
+# output configuration option
+output:
+  # Format: colored-line-number|line-number|json|tab|checkstyle|code-climate|junit-xml|github-actions
+  #
+  # Multiple can be specified by separating them by comma, output can be provided
+  # for each of them by separating format name and path by colon symbol.
+  # Output path can be either `stdout`, `stderr` or path to the file to write to.
+  # Example: "checkstyle:report.json,colored-line-number"
+  #
+  # Default: colored-line-number
+  formats:
+    - format: github-actions
+    - format: colored-line-number
+  # Print lines of code with issue.
+  # Default: true
+  print-issued-lines: true
+  # Print linter name in the end of issue text.
+  # Default: true
+  print-linter-name: true
+  # Make issues output unique by line.
+  # Default: true
+  uniq-by-line: true
+  # Add a prefix to the output file references.
+  # Default is no prefix.
+  path-prefix: "./"
+  # Sort results by: filepath, line and column.
+  sort-results: true
+linters-settings:
+  revive:
+    # Maximum number of open files at the same time.
+    # See https://github.com/mgechev/revive#command-line-flags
+    # Defaults to unlimited.
+    max-open-files: 2048
+    # When set to false, ignores files with "GENERATED" header, similar to golint.
+    # See https://github.com/mgechev/revive#available-rules for details.
+    # Default: false
+    ignore-generated-header: true
+    # Sets the default severity.
+    # See https://github.com/mgechev/revive#configuration
+    # Default: warning
+    severity: error
+    # Enable all available rules.
+    # Default: false
+    enable-all-rules: true
+    # Sets the default failure confidence.
+    # This means that linting errors with less than 0.8 confidence will be ignored.
+    # Default: 0.8
+    confidence: 0.1
+    rules:
+      - name: add-constant
+        severity: warning
+        disabled: false
+        arguments:
+          - maxLitCount: "3"
+            allowStrs: '""'
+            allowInts: "0,1,2,10,32,64"
+            allowFloats: "0.0,0.,1.0,1.,2.0,2."
+      - name: line-length-limit
+        severity: warning
+        disabled: false
+        arguments: [ 120 ]
+      - name: max-public-structs
+        disabled: true
+      - name: comment-spacings
+        disabled: true
+      - name: blank-imports
+        disabled: true
+      - name: cognitive-complexity
+        disabled: true
+      - name: get-return
+        disabled: true
+      - name: redundant-import-alias
+        disabled: true
+  dupl:
+    threshold: 100
+  errorlint:
+    errorf: true
+  errcheck:
+    check-type-assertions: true
+    check-blank: true
+  exhaustive:
+    check-generated: false
+    default-signifies-exhaustive: false
+  funlen:
+    lines: 65
+    statements: 40
+  gocognit:
+    min-complexity: 15
+  gocyclo:
+    min-complexity: 10
+  goconst:
+    min-len: 2
+    min-occurrences: 2
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - experimental
+      - opinionated
+      - performance
+      - style
+    disabled-checks:
+      - whyNoLint
+      - dupImport
+      - unnecessaryBlock
+  gofumpt:
+    extra-rules: true
+  gomnd:
+    checks:
+      - argument
+      - case
+      - condition
+      - operation
+      - return
+  misspell:
+    locale: US
+  nestif:
+    min-complexity: 4
+  nolintlint:
+    require-explanation: true
+    require-specific: true
+  tagliatelle:
+    # Check the struct tag name case.
+    case:
+      # Use the struct field name to check the name of the struct tag.
+      # Default: false
+      use-field-name: false
+      # `camel` is used for `json` and `yaml` (can be overridden)
+      # Default: {}
+      rules:
+        # Any struct tag type can be used.
+        # Support string case: `camel`, `pascal`, `kebab`, `snake`, `goCamel`, `goPascal`, `goKebab`, `goSnake`, `upper`, `lower`
+        json: snake
+        yaml: goCamel
+        xml: goCamel
+        bson: snake
+        avro: snake
+        mapstructure: kebab
+  wsl:
+    # See https://github.com/bombsimon/wsl/blob/master/doc/configuration.md for documentation of available settings.
+    # These are the defaults for `golangci-lint`.
+
+    # Do strict checking when assigning from append (x = append(x, y)). If
+    # this is set to true - the append call must append either a variable
+    # assigned, called or used on the line above.
+    strict-append: true
+    # Allows assignments to be cuddled with variables used in calls on
+    # line above and calls to be cuddled with assignments of variables
+    # used in call on line above.
+    allow-assign-and-call: true
+    # Allows assignments to be cuddled with anything.
+    allow-assign-and-anything: false
+    # Allows cuddling to assignments even if they span over multiple lines.
+    allow-multiline-assign: true
+    # If the number of lines in a case block is equal to or lager than this
+    # number, the case *must* end white a newline.
+    force-case-trailing-whitespace: 0
+    # Allow blocks to end with comments.
+    allow-trailing-comment: true
+    # Allow multiple comments in the beginning of a block separated with newline.
+    allow-separated-leading-comment: false
+    # Allow multiple var/declaration statements to be cuddled.
+    allow-cuddle-declarations: false
+    allow-case-trailing-whitespace: true
+    # A list of call idents that everything can be cuddled with.
+    # Defaults to calls looking like locks.
+    allow-cuddle-with-calls: [ "Lock", "RLock" ]
+    # AllowCuddleWithRHS is a list of right hand side variables that is allowed
+    # to be cuddled with anything. Defaults to assignments or calls looking
+    # like unlocks.
+    allow-cuddle-with-rhs: [ "Unlock", "RUnlock" ]
+    # Causes an error when an If statement that checks an error variable doesn't
+    # cuddle with the assignment of that variable.
+    force-err-cuddling: true
+    # When force-err-cuddling is enabled this is a list of names
+    # used for error variables to check for in the conditional.
+    error-variable-names: [ "err" ]
+    # Causes an error if a short declaration (:=) cuddles with anything other than
+    # another short declaration.
+    # This logic overrides force-err-cuddling among others.
+    force-short-decl-cuddling: false
+linters:
+  enable-all: true
+  disable:
+    - deadcode
+    - scopelint
+    - varcheck
+    - golint
+    - ifshort
+    - structcheck
+    - maligned
+    - depguard
+    - interfacer
+    - tagliatelle
+    - noctx
+    - gci
+    - wrapcheck
+    - varnamelen
+    - exhaustivestruct
+    - nosnakecase
+    - nonamedreturns
+    - ireturn
+    - gochecknoglobals
+    - errname
+    - exhaustruct
+    - containedctx
+    - dupl
+    - godot
+    - nolintlint
+    - contextcheck
+    - gochecknoinits
+    - gocyclo
+    - gocognit
+    - funlen
+    - cyclop
+    - tagalign
+    - goconst
