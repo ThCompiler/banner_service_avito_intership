@@ -1,0 +1,413 @@
+{
+	"info": {
+		"_postman_id": "2836f320-49ef-46c8-82cf-89aa24c11cd0",
+		"name": "banner",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "17666425"
+	},
+	"item": [
+		{
+			"name": "banner",
+			"item": [
+				{
+					"name": "Получение баннера админом",
+					"request": {
+						"auth": {
+							"type": "apikey",
+							"apikey": [
+								{
+									"key": "value",
+									"value": "{{admin_token}}",
+									"type": "string"
+								},
+								{
+									"key": "key",
+									"value": "token",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/banner?feature_id=1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"banner"
+							],
+							"query": [
+								{
+									"key": "feature_id",
+									"value": "1"
+								},
+								{
+									"key": "offset",
+									"value": "0",
+									"disabled": true
+								},
+								{
+									"key": "limit",
+									"value": "100",
+									"disabled": true
+								},
+								{
+									"key": "tag_id",
+									"value": "2",
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Создание баннера",
+					"request": {
+						"auth": {
+							"type": "apikey",
+							"apikey": [
+								{
+									"key": "value",
+									"value": "{{admin_token}}",
+									"type": "string"
+								},
+								{
+									"key": "key",
+									"value": "token",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"content\": {\n    \"title\": \"mir\"\n  },\n  \"feature_id\": 1,\n  \"is_active\": true,\n  \"tag_ids\": [\n    2\n  ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/banner",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"banner"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Обновление баннера",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"pm.collectionVariables.set(\"banner_id\", 3);"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "apikey",
+							"apikey": [
+								{
+									"key": "value",
+									"value": "{{admin_token}}",
+									"type": "string"
+								},
+								{
+									"key": "key",
+									"value": "token",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"content\": {\n    \"title\": \"mir\",\n    \"description\": \"mir\"\n  },\n  \"feature_id\": 1,\n  \"is_active\": false,\n  \"tag_ids\": [\n    2\n  ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/banner/{{banner_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"banner",
+								"{{banner_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Получение баннера пользователем",
+					"request": {
+						"auth": {
+							"type": "apikey",
+							"apikey": [
+								{
+									"key": "value",
+									"value": "{{user_token}}",
+									"type": "string"
+								},
+								{
+									"key": "key",
+									"value": "token",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/user_banner?feature_id=1&tag_id=3",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"user_banner"
+							],
+							"query": [
+								{
+									"key": "feature_id",
+									"value": "1",
+									"description": "Обязательны"
+								},
+								{
+									"key": "tag_id",
+									"value": "3",
+									"description": "Обязательны"
+								},
+								{
+									"key": "version",
+									"value": "2",
+									"disabled": true
+								},
+								{
+									"key": "use_last_revision",
+									"value": "true",
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Удаление баннера",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"pm.collectionVariables.set(\"banner_id\", 4);"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "apikey",
+							"apikey": [
+								{
+									"key": "value",
+									"value": "{{admin_token}}",
+									"type": "string"
+								},
+								{
+									"key": "key",
+									"value": "token",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/banner/{{banner_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"banner",
+								"{{banner_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Удаление баннера по фильтру",
+					"request": {
+						"auth": {
+							"type": "apikey",
+							"apikey": [
+								{
+									"key": "value",
+									"value": "{{admin_token}}",
+									"type": "string"
+								},
+								{
+									"key": "key",
+									"value": "token",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/filter_banner?feature_id=1&tag_id=123",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"filter_banner"
+							],
+							"query": [
+								{
+									"key": "feature_id",
+									"value": "1",
+									"description": "Обязателен если нет tag_id"
+								},
+								{
+									"key": "tag_id",
+									"value": "123",
+									"description": "Обязателен если нет feature_id"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "auth",
+			"item": [
+				{
+					"name": "Получение токена пользователя",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.collectionVariables.set(\"user_token\", pm.response.json());"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/token/user",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"token",
+								"user"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Получение токена админа",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.collectionVariables.set(\"admin_token\", pm.response.json());"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/token/admin",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"token",
+								"admin"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8080/api/v1"
+		},
+		{
+			"key": "user_token",
+			"value": "user_2",
+			"type": "string"
+		},
+		{
+			"key": "admin_token",
+			"value": "admin_2",
+			"type": "string"
+		},
+		{
+			"key": "banner_id",
+			"value": "1"
+		}
+	]
+}

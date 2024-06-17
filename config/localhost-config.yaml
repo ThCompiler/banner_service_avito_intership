@@ -1,0 +1,15 @@
+port: 8080
+mode: debug+prof
+postgres:
+  url: "host=localhost port=5432 user=intern password=fyr8as4da6 dbname=banner_db sslmode=disable"
+  max_connections: 10
+  min_connections: 5
+  ttl_idle_connections: 100
+redis:
+  url: "redis://localhost:6379/0"
+logger:
+  app_name: "banner"
+  level: 'debug'
+  directory: './app-log/'
+  use_std_and_file: true
+  allow_show_low_level: true
