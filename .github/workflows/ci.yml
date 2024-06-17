@@ -12,6 +12,7 @@ on:
   pull_request:
     branches:
       - main
+      - rev
 jobs:
   lint:
     runs-on: ubuntu-latest
