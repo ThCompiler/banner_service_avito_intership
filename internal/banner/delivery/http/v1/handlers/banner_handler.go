@@ -10,11 +10,13 @@ import (
 	"bannersrv/internal/caches"
 	"bannersrv/internal/pkg/types"
 	"bannersrv/pkg/slices"
+	"context"
 	"net/http"
 	"strconv"
 
 	br "bannersrv/internal/banner/repository"
 
+	"github.com/ThCompiler/sdi"
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
 )
@@ -34,8 +36,15 @@ type BannerHandlers struct {
 	cache   caches.Manager
 }
 
-func NewBannerHandlers(usecase banner.Usecase, cache caches.Manager) *BannerHandlers {
-	return &BannerHandlers{usecase: usecase, cache: cache}
+type ProviderDeps struct {
+	Usecase banner.Usecase
+	Cache   caches.Manager
+}
+
+func NewProvider() sdi.Provider[*BannerHandlers, ProviderDeps] {
+	return sdi.ProviderFuncNoClean(func(_ context.Context, deps ProviderDeps) (*BannerHandlers, error) {
+		return &BannerHandlers{usecase: deps.Usecase, cache: deps.Cache}, nil
+	})
 }
 
 // CreateBanner
@@ -111,6 +120,7 @@ func (bh *BannerHandlers) DeleteBanner(c *gin.Context) {
 		return
 	}
 
+	//nolint:gosec // G115: id parsed as uint64 then cast to uint32
 	if err := bh.usecase.DeleteBanner(types.ID(id)); err != nil {
 		if errors.Is(err, br.ErrorBannerNotFound) {
 			tools.SendErrorStatus(c, err, http.StatusNotFound, l)
@@ -165,6 +175,7 @@ func (bh *BannerHandlers) UpdateBanner(c *gin.Context) {
 		return
 	}
 
+	//nolint:gosec // G115: id parsed as uint64 then cast to uint32
 	if err := bh.usecase.UpdateBanner(types.ID(id), updateBanner.ToModel()); err != nil {
 		if errors.Is(err, br.ErrorBannerNotFound) {
 			tools.SendErrorStatus(c, err, http.StatusNotFound, l)

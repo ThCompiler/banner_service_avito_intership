@@ -1,4 +1,4 @@
-FROM golang:1.22 as build
+FROM golang:1.25 as build
 WORKDIR /app
 
 RUN go install github.com/swaggo/swag/cmd/swag@latest
@@ -8,7 +8,7 @@ COPY . .
 RUN make swag-gen
 RUN make build-banner
 
-FROM golang:1.22 as production
+FROM golang:1.25 as production
 
 WORKDIR /app
 

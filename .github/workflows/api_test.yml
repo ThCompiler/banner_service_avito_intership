@@ -1,7 +1,7 @@
 name: Api testing
 
 env:
-  GO_VERSION: 1.22
+  GO_VERSION: 1.25
   BIN_NAME: quests
 
 permissions:
@@ -53,7 +53,7 @@ jobs:
           path: gh-pages
 
       - name: Build test report
-        uses: simple-elf/allure-report-action@v1.7
+        uses: simple-elf/allure-report-action@v1.14
         if: always()
         with:
           gh_pages: gh-pages
