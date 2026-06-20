@@ -1,9 +1,6 @@
 package main
 
 import (
-	"bannersrv/internal/app/config"
-	"bannersrv/internal/banner"
-	bp "bannersrv/internal/banner/repository/postgres"
 	"context"
 	"flag"
 	"fmt"
@@ -12,6 +9,10 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
+	"bannersrv/internal/app/config"
+	"bannersrv/internal/banner"
+	bp "bannersrv/internal/banner/repository/postgres"
 
 	"github.com/go-co-op/gocron/v2"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -50,8 +51,11 @@ func main() { // nolint: revive // this a small executable file and big length o
 		l.Fatalf("INIT:- postgres.New: %s", err)
 	}
 
+	//nolint:gosec // G115: config bounds are trusted
 	conf.MaxConns = int32(cfg.Postgres.MaxConnections)
+	//nolint:gosec // G115: config bounds are trusted
 	conf.MinConns = int32(cfg.Postgres.MinConnections)
+	//nolint:gosec // G115
 	conf.MaxConnIdleTime = time.Duration(cfg.Postgres.TTLIDleConnections) * time.Millisecond
 
 	pg, err := pgxpool.NewWithConfig(context.Background(), conf)
@@ -70,7 +74,7 @@ func main() { // nolint: revive // this a small executable file and big length o
 	bannerRepository := bp.NewBannerRepository(pg)
 
 	if _, err = cronScheduler.NewJob(
-		gocron.DurationJob(time.Duration(period)*time.Millisecond),
+		gocron.DurationJob(time.Duration(period)*time.Millisecond), //nolint:gosec // G115
 		gocron.NewTask(
 			func(rep banner.Repository, l *log.Logger) {
 				if err := rep.CleanDeletedBanner(); err != nil {

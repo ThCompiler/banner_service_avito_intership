@@ -15,10 +15,12 @@ var (
 	ErrorGreaterMaximum = errors.New("greater than the maximum value for ID")
 )
 
+//nolint:recvcheck // standard sql.Scanner/driver.Valuer pattern
 type ID uint32
 
 type ContextField string
 
+//nolint:recvcheck // standard sql.Scanner/driver.Valuer pattern
 type Content string
 
 type NullableObject[T any] struct {

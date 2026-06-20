@@ -3,8 +3,11 @@ package manager
 import (
 	"bannersrv/internal/caches"
 	"bannersrv/internal/pkg/types"
+	"context"
 	"fmt"
 	"time"
+
+	"github.com/ThCompiler/sdi"
 )
 
 const (
@@ -15,10 +18,10 @@ type CacheManager struct {
 	rep caches.Repository
 }
 
-func NewCacheManager(cache caches.Repository) *CacheManager {
-	return &CacheManager{
-		rep: cache,
-	}
+func NewProvider() sdi.Provider[caches.Manager, caches.Repository] {
+	return sdi.ProviderFuncNoClean(func(_ context.Context, repository caches.Repository) (caches.Manager, error) {
+		return &CacheManager{rep: repository}, nil
+	})
 }
 
 func (cm *CacheManager) HaveCache(featureID, tagID types.ID, version *uint32) (types.Content, error) {

@@ -6,7 +6,10 @@ import (
 	"bannersrv/internal/banner/models"
 	"bannersrv/internal/pkg/types"
 	"bannersrv/pkg/slices"
+	"context"
 	"encoding/json"
+
+	"github.com/ThCompiler/sdi"
 )
 
 const (
@@ -18,10 +21,10 @@ type BannerUsecase struct {
 	rep banner.Repository
 }
 
-func NewBannerUsecase(bnr banner.Repository) *BannerUsecase {
-	return &BannerUsecase{
-		rep: bnr,
-	}
+func NewProvider() sdi.Provider[banner.Usecase, banner.Repository] {
+	return sdi.ProviderFuncNoClean(func(_ context.Context, repository banner.Repository) (banner.Usecase, error) {
+		return &BannerUsecase{rep: repository}, nil
+	})
 }
 
 func (bu *BannerUsecase) CreateBanner(tagIDs []types.ID, featureID types.ID,

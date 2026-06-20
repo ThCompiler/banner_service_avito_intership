@@ -1,11 +1,14 @@
 package redis
 
 import (
-	"bannersrv/internal/caches/repository"
-	"bannersrv/internal/pkg/types"
 	"context"
 	"time"
 
+	"bannersrv/internal/caches"
+	"bannersrv/internal/caches/repository"
+	"bannersrv/internal/pkg/types"
+
+	"github.com/ThCompiler/sdi"
 	"github.com/pkg/errors"
 	"github.com/redis/go-redis/v9"
 )
@@ -15,8 +18,14 @@ type CashRedis struct {
 	ctx    context.Context
 }
 
-func NewCashRedis(client *redis.Client) *CashRedis {
-	return &CashRedis{client: client, ctx: context.Background()}
+type ProviderDeps struct {
+	Client *redis.Client
+}
+
+func NewProvider() sdi.Provider[caches.Repository, ProviderDeps] {
+	return sdi.ProviderFuncNoClean(func(_ context.Context, deps ProviderDeps) (caches.Repository, error) {
+		return &CashRedis{client: deps.Client, ctx: context.Background()}, nil
+	})
 }
 
 func (cr *CashRedis) SetCache(key string, content types.Content, ttl time.Duration) error {

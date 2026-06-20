@@ -1,16 +1,10 @@
 package app
 
 import (
-	"bannersrv/internal/app/config"
 	"bannersrv/internal/app/delivery/http/middleware"
 	"bannersrv/internal/caches"
-	"bannersrv/internal/pkg/prepare"
 	"bannersrv/internal/token"
-	"bannersrv/pkg/logger"
-	"io"
-	"log"
 	"net/http"
-	"os"
 
 	ah "bannersrv/external/auth/delivery/http/v1/handlers"
 
@@ -28,40 +22,6 @@ import (
 
 	_ "bannersrv/docs"
 )
-
-func prepareLogger(cfg config.LoggerInfo) (*logger.Logger, *os.File) {
-	var logOut io.Writer
-
-	var logFile *os.File
-
-	var err error
-
-	if cfg.Directory != "" {
-		logFile, err = prepare.OpenLogDir(cfg.Directory)
-		if err != nil {
-			log.Fatalf("[App] Init - create logger error: %s", err) // nolint: revive // логгер инициализируется,
-			// ошибку открытия лог файла больше нечем логировать
-		}
-
-		logOut = logFile
-	} else {
-		logOut = os.Stderr
-		logFile = nil
-	}
-
-	l := logger.New(
-		logger.Params{
-			AppName:                  cfg.AppName,
-			LogDir:                   cfg.Directory,
-			Level:                    cfg.Level,
-			UseStdAndFile:            cfg.UseStdAndFile,
-			AddLowPriorityLevelToCmd: cfg.AllowShowLowLevel,
-		},
-		logOut,
-	)
-
-	return l, logFile
-}
 
 func PrepareRoutes(bannerHandlers *bh.BannerHandlers, cache caches.Manager,
 	tokenService token.Service, authHandlers *ah.AuthHandlers,

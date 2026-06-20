@@ -2,17 +2,17 @@ package main
 
 import (
 	"bannersrv/internal/app/config"
+	"bannersrv/internal/pkg/pg"
 	"bannersrv/internal/pkg/types"
+	"bannersrv/pkg/logger"
 	"context"
 	"encoding/json"
 	"flag"
 	"log"
 	"os"
-	"time"
 
 	bp "bannersrv/internal/banner/repository/postgres"
 
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/tidwall/randjson"
 )
 
@@ -45,26 +45,17 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// Postgres
-	cfx, err := pgxpool.ParseConfig(cfg.Postgres.URL)
-	if err != nil {
-		log.Fatalf("postgres.New: %s", err)
-	}
-
-	cfx.MaxConns = int32(cfg.Postgres.MaxConnections)
-	cfx.MinConns = int32(cfg.Postgres.MinConnections)
-	cfx.MaxConnIdleTime = time.Duration(cfg.Postgres.TTLIDleConnections) * time.Millisecond
-
-	pg, err := pgxpool.NewWithConfig(context.Background(), cfx)
+	pg, err := pg.NewPool(context.Background(), pg.Config{
+		URL:                cfg.Postgres.URL,
+		MaxConnections:     cfg.Postgres.MaxConnections,
+		MinConnections:     cfg.Postgres.MinConnections,
+		TTLIDleConnections: cfg.Postgres.TTLIDleConnections,
+	}, &logger.EmptyLogger{})
 	//nolint: staticcheck
 	defer pg.Close() //lint:ignore SA5001 Close() doesn't return error
 
 	if err != nil {
-		log.Fatalf("postgres.New: %s", err)
-	}
-
-	if err = pg.Ping(context.Background()); err != nil {
-		log.Fatalf("can't check connection to sql with error %s", err)
+		log.Fatal(err)
 	}
 
 	// Repository

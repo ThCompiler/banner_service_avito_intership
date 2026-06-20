@@ -2,12 +2,16 @@ package config
 
 import (
 	"bannersrv/pkg/logger"
+	"context"
 
+	"github.com/ThCompiler/sdi"
 	"github.com/ilyakaznacheev/cleanenv"
 	"github.com/pkg/errors"
 )
 
 type Mode string
+
+type Path string
 
 const (
 	Release     Mode = "release"
@@ -54,4 +58,10 @@ func NewConfig(path string) (*Config, error) {
 	}
 
 	return cfg, nil
+}
+
+func NewProvider() sdi.Provider[*Config, Path] {
+	return sdi.ProviderFuncNoClean(func(_ context.Context, path Path) (*Config, error) {
+		return NewConfig(string(path))
+	})
 }

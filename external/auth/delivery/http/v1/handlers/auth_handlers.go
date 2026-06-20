@@ -4,8 +4,10 @@ import (
 	"bannersrv/external/auth"
 	"bannersrv/internal/app/delivery/http/middleware"
 	"bannersrv/internal/app/delivery/http/tools"
+	"context"
 	"net/http"
 
+	"github.com/ThCompiler/sdi"
 	"github.com/gin-gonic/gin"
 )
 
@@ -13,8 +15,10 @@ type AuthHandlers struct {
 	usecase auth.Usecase
 }
 
-func NewAuthHandlers(usecase auth.Usecase) *AuthHandlers {
-	return &AuthHandlers{usecase: usecase}
+func NewProvider() sdi.Provider[*AuthHandlers, auth.Usecase] {
+	return sdi.ProviderFuncNoClean(func(_ context.Context, usecase auth.Usecase) (*AuthHandlers, error) {
+		return &AuthHandlers{usecase: usecase}, nil
+	})
 }
 
 // GetAdminToken

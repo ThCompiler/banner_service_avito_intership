@@ -4,6 +4,8 @@ import (
 	"context"
 	"net/http"
 	"time"
+
+	"github.com/ThCompiler/sdi"
 )
 
 const (
@@ -17,6 +19,15 @@ type Server struct {
 	server          *http.Server
 	notify          chan error
 	shutdownTimeout time.Duration
+}
+
+type Config struct {
+	Port string
+}
+
+type ProviderDeps struct {
+	Config  Config
+	Handler http.Handler
 }
 
 func New(server http.Handler, opts ...Option) *Server {
@@ -59,4 +70,10 @@ func (s *Server) Shutdown() error {
 	defer cancel()
 
 	return s.server.Shutdown(ctx)
+}
+
+func NewProvider() sdi.Provider[*Server, ProviderDeps] {
+	return sdi.ProviderFuncNoClean(func(_ context.Context, deps ProviderDeps) (*Server, error) {
+		return New(deps.Handler, Port(deps.Config.Port)), nil
+	})
 }

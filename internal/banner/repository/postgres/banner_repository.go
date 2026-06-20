@@ -1,12 +1,15 @@
 package postgres
 
 import (
+	"context"
+
+	"bannersrv/internal/banner"
 	"bannersrv/internal/banner/entity"
 	"bannersrv/internal/banner/repository"
 	"bannersrv/internal/pkg/pg"
 	"bannersrv/internal/pkg/types"
-	"context"
 
+	"github.com/ThCompiler/sdi"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -107,10 +110,18 @@ type BannerRepository struct {
 	db *pgxpool.Pool
 }
 
+type ProviderDeps struct {
+	DB *pgxpool.Pool
+}
+
 func NewBannerRepository(db *pgxpool.Pool) *BannerRepository {
-	return &BannerRepository{
-		db: db,
-	}
+	return &BannerRepository{db: db}
+}
+
+func NewProvider() sdi.Provider[banner.Repository, ProviderDeps] {
+	return sdi.ProviderFuncNoClean(func(_ context.Context, deps ProviderDeps) (banner.Repository, error) {
+		return NewBannerRepository(deps.DB), nil
+	})
 }
 
 func (*BannerRepository) addContent(tx pgx.Tx, id types.ID, content types.Content) error {
@@ -126,7 +137,8 @@ func (br *BannerRepository) CreateBanner(featureID types.ID, tagIDs []types.ID,
 ) (types.ID, error) {
 	var createdID types.ID
 
-	if err := pg.WithTransaction(br.db,
+	if err := pg.WithTransaction(
+		br.db,
 		func(tx pgx.Tx) error {
 			if err := tx.QueryRow(context.Background(), createQuery, isActive).
 				Scan(
@@ -202,7 +214,8 @@ func (*BannerRepository) updateBannerInfo(tx pgx.Tx, bnr *entity.BannerUpdate) e
 func (br *BannerRepository) UpdateBanner(bnr *entity.BannerUpdate) (types.ID, error) {
 	var updatedID types.ID
 
-	if err := pg.WithTransaction(br.db,
+	if err := pg.WithTransaction(
+		br.db,
 		func(tx pgx.Tx) error {
 			if err := tx.QueryRow(context.Background(), checkDeleted, bnr.ID).Scan(&updatedID); err != nil {
 				if errors.Is(err, pgx.ErrNoRows) {
@@ -379,7 +392,8 @@ func (br *BannerRepository) GetBanners(bnr *entity.BannerInfo,
 ) ([]entity.Banner, error) {
 	var banners []entity.Banner
 
-	if err := pg.WithTransaction(br.db,
+	if err := pg.WithTransaction(
+		br.db,
 		func(tx pgx.Tx) error {
 			var err error
 
@@ -438,7 +452,8 @@ func (br *BannerRepository) GetBanner(featureID, tagID types.ID,
 }
 
 func (br *BannerRepository) DeleteFilteredBanner(bnr *entity.BannerInfo) error {
-	if err := pg.WithTransaction(br.db,
+	if err := pg.WithTransaction(
+		br.db,
 		func(tx pgx.Tx) error {
 			res, err := tx.Exec(context.Background(), delayedDeletionQuery,
 				&pgtype.Uint32{

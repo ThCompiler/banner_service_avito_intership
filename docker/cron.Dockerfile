@@ -1,11 +1,11 @@
-FROM golang:1.22 as build
+FROM golang:1.25 as build
 WORKDIR /app
 
 COPY . .
 
 RUN make build-cron
 
-FROM golang:1.22 as production
+FROM golang:1.25 as production
 
 WORKDIR /app
 

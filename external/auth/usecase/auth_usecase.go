@@ -2,8 +2,10 @@ package usecase
 
 import (
 	"bannersrv/external/auth"
+	"context"
 	"strings"
 
+	"github.com/ThCompiler/sdi"
 	"github.com/google/uuid"
 )
 
@@ -13,10 +15,6 @@ const (
 )
 
 type AuthUsecase struct{}
-
-func NewAuthUsecase() *AuthUsecase {
-	return &AuthUsecase{}
-}
 
 func (*AuthUsecase) IsAdminToken(token auth.Token) (bool, error) {
 	if strings.HasPrefix(string(token), adminPrefix) {
@@ -40,4 +38,10 @@ func (*AuthUsecase) GetUserToken() auth.Token {
 
 func (*AuthUsecase) GetAdminToken() auth.Token {
 	return auth.Token(adminPrefix + "-" + uuid.New().String())
+}
+
+func NewProvider() sdi.Provider[*AuthUsecase, struct{}] {
+	return sdi.ProviderFuncNoClean(func(_ context.Context, _ struct{}) (*AuthUsecase, error) {
+		return &AuthUsecase{}, nil
+	})
 }
